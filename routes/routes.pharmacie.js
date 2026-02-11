@@ -1,4 +1,5 @@
 const express = require("express");
+const controllerPharmacie = require("../controllers/controller.pharmacie");
 
 const routes = express.Router();
 
@@ -7,16 +8,13 @@ const routes = express.Router();
  * POST /api/pharmacie/profilpharmacie
  * @summary Récupérer le profil de la pharmacie
  * @tags Pharmacie
- * @param {string} request.body.required -Code de la pharmacie dont on veut récupérer le profil
+ * @param {string} request.body.required -Code l'utilisateur qui gère la pharmacie dont on veut récupérer le profil
  * @return {object} 201 - Prodil pharmacie récupérées avec succès
  * @return {object} 400 - Données invalides
  * @return {object} 500 - Erreur serveur
  */
 routes.post("/profilpharmacie", (req, res) => {
-  return res.json({
-    success: true,
-    message: "Profil de la pharmacie récupéré avec succès",
-  });
+  return controllerPharmacie.profilPharmacie(req, res);
 });
 
 //Ajouter une assurance à la liste des assurances acceptées
@@ -35,10 +33,7 @@ routes.post("/profilpharmacie", (req, res) => {
  * @return {object} 500 - Erreur serveur
  */
 routes.post("/ajoutassurance", (req, res) => {
-  return res.json({
-    success: true,
-    message: "Assurance ajouté avec succès !",
-  });
+  return controllerPharmacie.ajouterAssurance(req, res);
 });
 
 //toute les pharmacies
@@ -52,10 +47,7 @@ routes.post("/ajoutassurance", (req, res) => {
  * @return {object} 500 - Erreur serveur
  */
 routes.get("/", (req, res) => {
-  return res.json({
-    success: true,
-    message: "Route toute les pharmacies",
-  });
+  return controllerPharmacie.toutePharmacies(req, res);
 });
 
 module.exports = routes;

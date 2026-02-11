@@ -4,6 +4,8 @@ const router = express.Router();
 
 router.use("/pharmacie", require("./routes.pharmacie"));
 
+router.use("/assurance", require("./routes.assurances"));
+
 router.use("/utilisateurs", require("./routes.utilisateur"));
 
 router.use("/annonces", require("./routes.annonces"));

@@ -2,14 +2,17 @@ const express = require("express");
 
 const routes = express.Router();
 
+const controllerUtilisateur = require("../controllers/controller.utilisateurs");
+
 /**
  * @typedef {object} informationInscription
  * @property {string} nomUtilisateur.required -Nom de l'utilisateur
  * @property {string} prenomUtilisateur.required -Prenom de l'utilisateur
  * @property {string} numeroUtilisateur.required -Numéro de téléphone de l'utilisateur
+ * @property {string} codePinUtilisateur.required -Code pin de l'utilisateur
  * @property {string} assuranceUtilisateur -Nom de l'assurance de l'utilisateur
+ * @property {string} adresseUtilisateur -Adresse que l'utilisateur fourni
  */
-
 //Inscription utilisateur
 /**
  * POST /api/utilisateur/inscription
@@ -22,10 +25,7 @@ const routes = express.Router();
  * @return {object} 500 - Erreur serveur
  */
 routes.post("/inscription", (req, res) => {
-  return res.json({
-    success: true,
-    message: "Inscription page",
-  });
+  return controllerUtilisateur.inscription(req, res);
 });
 
 //Connexion utilisateur
@@ -45,18 +45,24 @@ routes.post("/inscription", (req, res) => {
  * @return {object} 500 - Erreur serveur
  */
 routes.post("/connexion", (req, res) => {
-  return res.json({
-    success: true,
-    message: "Route connexion",
-  });
+  return controllerUtilisateur.connexion(req, res);
 });
-
+/**
+ * @typedef {object} InfoSession -Profil de l'utilisateur
+ * @property {string} nomUtilisateur -Nom de l'utilisateur
+ * @property {string} prenomUtilisateur -Prenom de l'utilisateur
+ * @property {string} numeroUtilisateur -Numéro de l'utilisateur
+ * @property {string} typeUtilisateur -Le type d'utilisateur qu'il est
+ * @property {string} nomAssurance -Le nom de l'assurance de l'utilisateur
+ * @property {string} adresseUtilisateur -Adresse de l'utilisateur
+ * @property {string} jeton_jwt -Jeton JWT pour la sécurisation des requetes
+ */
 /**
  * POST /api/utilisateur/profilutilisateur
  * @summary Profil utilisateur
  * @tags Utilisateur
  * @param {string} request.body.required -Code de l'utilisateur dont on veut le profil
- * @return {object} 201 - Profil utilisateur obtenu avec succès
+ * @return {InfoSession} 201 - Profil utilisateur obtenu avec succès
  * @return {object} 400 - Données invalides
  * @return {object} 409 - Profil utilisateur introuvable
  * @return {object} 500 - Erreur serveur
