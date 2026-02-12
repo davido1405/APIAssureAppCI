@@ -9,14 +9,16 @@ class controllerUtilisateur {
       prenomUtilisateur,
       numeroUtilisateur,
       codePinUtilisateur,
+      type_utilisateur,
       assuranceUtilisateur,
       adresseUtilisateur,
     } = req.body;
-    const reponse = modelUtilisateur.inscription(
+    const reponse = await modelUtilisateur.inscription(
       nomUtilisateur,
       prenomUtilisateur,
       numeroUtilisateur,
       codePinUtilisateur,
+      type_utilisateur,
       assuranceUtilisateur,
       adresseUtilisateur,
     );
@@ -26,7 +28,7 @@ class controllerUtilisateur {
   //Connexion utilisateur
   static async connexion(req, res) {
     const { numeroUtilisateur, codePinUtilisateur } = req.body;
-    const reponse = modelUtilisateur.connexion(
+    const reponse = await modelUtilisateur.connexion(
       numeroUtilisateur,
       codePinUtilisateur,
     );
@@ -36,14 +38,14 @@ class controllerUtilisateur {
   //Récupérer le profil utilisateur
   static async profilUtilisateur(req, res) {
     const { codeUtilisateur } = req.body;
-    const reponse = modelUtilisateur.profilUtilisateur(codeUtilisateur);
+    const reponse = await modelUtilisateur.profilUtilisateur(codeUtilisateur);
     return res.json(reponse);
   }
 
   //Réinitialiser le mot de passe
   static async recoverPassword(req, res) {
     const { numeroUtilisateur } = req.body;
-    const reponse = modelUtilisateur.recoverPassword(numeroUtilisateur);
+    const reponse = await modelUtilisateur.recoverPassword(numeroUtilisateur);
     return res.json(reponse);
   }
 }

@@ -10,6 +10,7 @@ const controllerUtilisateur = require("../controllers/controller.utilisateurs");
  * @property {string} prenomUtilisateur.required -Prenom de l'utilisateur
  * @property {string} numeroUtilisateur.required -Numéro de téléphone de l'utilisateur
  * @property {string} codePinUtilisateur.required -Code pin de l'utilisateur
+ * @property {string} type_utilisateur.required -Numéro de téléphone de l'utilisateur
  * @property {string} assuranceUtilisateur -Nom de l'assurance de l'utilisateur
  * @property {string} adresseUtilisateur -Adresse que l'utilisateur fourni
  */

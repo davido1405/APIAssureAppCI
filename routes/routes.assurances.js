@@ -3,18 +3,6 @@ const controllerAssurances = require("../controllers/controller.assurances");
 const routes = express.Router();
 
 /**
- * GET /api/assurance
- * @summary Récupérer liste des assurances dans le système
- * @tags Assurance
- * @return {object} 201 - Liste des assurances récupérées avec succès
- * @return {object} 400 - Données introuvables
- * @return {object} 500 - Erreur serveur
- */
-routes.get("/", (req, res) => {
-  return controllerAssurances.listeAssurance(req, res);
-});
-
-/**
  * POST /api/assurance/ajouterassurance
  * @summary Ajouter une nouvelle assurance dans le système
  * @tags Assurance
@@ -51,5 +39,17 @@ routes.put("/modifierassurance", (req, res) => {
  */
 routes.delete("/supprimerassurance", (req, res) => {
   return controllerAssurances.supprimerAssurance(req, res);
+});
+
+/**
+ * GET /api/assurance
+ * @summary Récupérer liste des assurances dans le système
+ * @tags Assurance
+ * @return {object} 201 - Liste des assurances récupérées avec succès
+ * @return {object} 400 - Données introuvables
+ * @return {object} 500 - Erreur serveur
+ */
+routes.get("/", (req, res) => {
+  return controllerAssurances.listeAssurance(req, res);
 });
 module.exports = routes;
