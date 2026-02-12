@@ -70,10 +70,7 @@ routes.post("/connexion", (req, res) => {
  *
  */
 routes.post("/profilUtilisateur", (req, res) => {
-  return res.json({
-    success: true,
-    message: "Profil utilisateur recupéré avec succès",
-  });
+  return controllerUtilisateur.profilUtilisateur(req, res);
 });
 //Récupérer mot de passe
 /**

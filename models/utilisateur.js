@@ -17,7 +17,7 @@ class utilisateur {
     let code_utilisateur = prefix + "-" + datePaiem + "-" + partieAlea;
     return code_utilisateur;
   }
-  //Connexion
+  //Inscription
   static async inscription(
     nomUtilisateur,
     prenomUtilisateur,
@@ -74,8 +74,8 @@ class utilisateur {
       const code_utilisateur = this.genererCodeUtilisateur();
       //Inserer dans adresse utilisateur
       const rows2 = await connexion.query(
-        "INSERT INTO adresse_utilisateur (adresse_fournit) VALUES(?)",
-        [adresseUtilisateur],
+        "INSERT INTO adresse_utilisateur (code_utilisateur,adresse_fournit) VALUES(?,?)",
+        [code_utilisateur, adresseUtilisateur],
       );
 
       const rows = await connexion.query(
@@ -114,6 +114,98 @@ class utilisateur {
         success: false,
         message: "Inscription de l'utilisateur impossible",
       };
+    }
+  }
+
+  //Connexion
+  static async connexion(numeroUtilisateur, codePinUtilisateur) {
+    if (!(numeroUtilisateur && codePinUtilisateur)) {
+      return {
+        success: false,
+        message: "Veuillez vérifier tous les champs. Merci",
+      };
+    }
+    //Initialisation connexion BD
+    const connexion = await dataBase.getConnection();
+    try {
+      const requete = await connexion.query(
+        "SELECT u.code_utilisateur,u.nom_utilisateur,u.prenom_utilisateur,u.numeros_utilisateur,u.password_hash,u.fcm_tokens,t.libelle_type_utilisateur,a.nom_assurance,ad.adresse_fournit FROM utilisateurs as u INNER JOIN type_utilisateur as t ON t.id_type_utilisateur=u.id_type_utilisateur INNER JOIN assurances as a ON a.id_assurance=u.id_assurance INNER JOIN adresse_utilisateur as ad ON ad.id_adresse=u.id_adresse WHERE numeros_utilisateur=?",
+        [numeroUtilisateur],
+      );
+      const utilisateur = requete[0][0];
+      if (!utilisateur) {
+        return {
+          success: false,
+          message:
+            "Aucun compte n'existe pour ce numéro. Veuillez vous inscrire ! Merci",
+        };
+      }
+      if (!utilisateur?.password_hash == codePinUtilisateur) {
+        return {
+          success: false,
+          message: "Veuillez vérifier votre mot de passe. Merci",
+        };
+      }
+
+      //Juste pour les tests
+      const jwt_tokens = "xdfkgjsnfsdfs5674gfdgrd684se-dfsgà)";
+
+      return {
+        success: true,
+        message: "Utilisateur authentifié avec succès !",
+        data: {
+          code_utilisateur: utilisateur.code_utilisateur,
+          nom_utilisateur: utilisateur.nom_utilisateur,
+          prenom_utilisateur: utilisateur.prenom_utilisateur,
+          numeros_utilisateur: utilisateur.numeros_utilisateur,
+          type_utilisateur: utilisateur.libelle_type_utilisateur,
+          assurance_utilisateur: utilisateur.nom_assurance,
+          adresse_utilisateur: utilisateur.adresse_fournit,
+          jwt_tokens: jwt_tokens,
+        },
+      };
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  //Récupérer le profil
+  static async profilUtilisateur(codeUtilisateur) {
+    if (!codeUtilisateur) {
+      return {
+        success: false,
+        message: "Veuillez vérifier tous les champs. Merci",
+      };
+    }
+    const connexion = await dataBase.getConnection();
+    try {
+      const requete = await connexion.query(
+        "SELECT u.code_utilisateur,u.nom_utilisateur,u.prenom_utilisateur,u.numeros_utilisateur,u.password_hash,u.fcm_tokens,t.libelle_type_utilisateur,a.nom_assurance,ad.adresse_fournit FROM utilisateurs as u INNER JOIN type_utilisateur as t ON t.id_type_utilisateur=u.id_type_utilisateur INNER JOIN assurances as a ON a.id_assurance=u.id_assurance INNER JOIN adresse_utilisateur as ad ON ad.id_adresse=u.id_adresse WHERE u.code_utilisateur=?",
+        [codeUtilisateur],
+      );
+      const utilisateur = requete[0][0];
+
+      if (!utilisateur) {
+        return {
+          success: false,
+          message: "Aucun profil trouvé pour cet utilisateur",
+        };
+      }
+      return {
+        success: true,
+        message: "Utilisateur authentifié avec succès !",
+        data: {
+          code_utilisateur: utilisateur.code_utilisateur,
+          nom_utilisateur: utilisateur.nom_utilisateur,
+          prenom_utilisateur: utilisateur.prenom_utilisateur,
+          numeros_utilisateur: utilisateur.numeros_utilisateur,
+          type_utilisateur: utilisateur.libelle_type_utilisateur,
+          assurance_utilisateur: utilisateur.nom_assurance,
+          adresse_utilisateur: utilisateur.adresse_fournit,
+        },
+      };
+    } catch (error) {
+      console.log(error);
     }
   }
 }
