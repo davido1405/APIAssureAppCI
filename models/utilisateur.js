@@ -208,6 +208,49 @@ class utilisateur {
       console.log(error);
     }
   }
+
+  //Ajouter une assurance à la liste des assurances possédée par l'utilisateur
+  static async ajouterAssurance(codeUtilisateur, nomAssurance) {
+    const connexion = await dataBase.getConnection();
+    try {
+      await connexion.beginTransaction();
+      const requete = await connexion.query(
+        "SELECT id_assurance FROM assurance WHERE nom_assurance=?",
+        [nomAssurance],
+      );
+      let id_assurance = requete[0][0]?.id_assurance;
+      if (!id_assurance) {
+        const requete2 = await connexion.query(
+          "INSERT INTO assurance(nom_assurance)VALUES(?)",
+          [nomAssurance],
+        );
+        id_assurance = requete2.insertId;
+      }
+      //Enregistrement de l'assurance
+      const requete3 = await connexion.query(
+        "INSERT INTO utilisateur_assurance(code_utilisateur,id_assurance) VALUES (?,?)",
+        [codeUtilisateur, id_assurance],
+      );
+
+      connexion.commit();
+
+      return {
+        success: true,
+        message:
+          "Assurance ajoutée à la liste des assurances de l'utilisateur avec succès !",
+      };
+    } catch (error) {
+      await connexion.rollback();
+      console.log(error);
+      return {
+        success: false,
+        message:
+          "Impossible d'ajouter l'assurance à la liste des assurances de l'utilisateur",
+      };
+    } finally {
+      connexion.release();
+    }
+  }
 }
 module.exports = utilisateur;
 

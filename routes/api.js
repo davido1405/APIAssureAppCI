@@ -13,7 +13,4 @@ router.use("/annonces", require("./routes.annonces"));
 router.use("/abonnementPharmacie", require("./routes.abonnementPharmacie"));
 
 router.use("/newsLetters", require("./routes.newsLetters"));
-
-router.use("/adressePharmacie", require("./routes.adressePharmacie"));
-
 module.exports = router;

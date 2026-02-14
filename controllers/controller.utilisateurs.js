@@ -48,6 +48,17 @@ class controllerUtilisateur {
     const reponse = await modelUtilisateur.recoverPassword(numeroUtilisateur);
     return res.json(reponse);
   }
+
+  //Ajouter assurance utiliser
+  static async ajouterAssurance(req, res) {
+    const { codeUtilisateur, nom_assurance } = req.body;
+    const reponse = await modelUtilisateur.ajouterAssurance(
+      codeUtilisateur,
+      nom_assurance,
+    );
+
+    return res.json(reponse);
+  }
 }
 
 module.exports = controllerUtilisateur;

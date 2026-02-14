@@ -83,7 +83,25 @@ routes.post("/profilUtilisateur", (req, res) => {
  * @return {object} 409 - Utilisateur introuvable
  * @return {object} 500 - Erreur serveur
  */
-routes.post("/recoverpassword", (req, res) => {
+routes.post("/recoverPassword", (req, res) => {
+  return res.json({
+    success: true,
+    message: "Numéro vérifier avec succès",
+  });
+});
+
+//ajouter assurances de l'utilisateur
+/**
+ * POST /api/utilisateur/recoverpassword
+ * @summary Récupérer le mot passe
+ * @tags Utilisateur
+ * @param {string} codeUtilisateur.required - Code de l'utilisateur dont on ajoute la liste d'assurance
+ * @param {Array[]} liste_assurance.required - Liste des assurances qu'on veut ajouter à la liste d'assurance de l'utilisateur
+ * @return {object} 201 - Assurance ajouté avec succès
+ * @return {object} 400 - Impossible d'ajouter les assurances
+ * @return {object} 500 - Erreur serveur
+ */
+routes.post("/ajouterAssurance", (req, res) => {
   return res.json({
     success: true,
     message: "Numéro vérifier avec succès",
