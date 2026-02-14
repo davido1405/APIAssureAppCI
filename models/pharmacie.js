@@ -354,7 +354,7 @@ GROUP BY p.code_pharmacie`,
 
       //Mettre à jour le type utilisateur
       const requete8 = await connexion.query(
-        "UPDATE utilisateurs SET (id_type_utilisateur) VALUES(?) WHERE code_utilisateur=?",
+        "UPDATE utilisateurs SET (id_type_utilisateur=?) WHERE code_utilisateur=?",
         [3, code_gerant],
       );
 

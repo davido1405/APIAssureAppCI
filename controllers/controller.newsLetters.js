@@ -3,9 +3,12 @@ const modelNewsletter = require("../models/newsLetters");
 
 class controllerNewsletters {
   //Récupérer la liste des abonnements d'un utilisateur
-  static async abonnement(req, res) {
-    const { codeUtilisateur } = req.params;
-    const reponse = await modelNewsletter.abonnement(codeUtilisateur);
+  static async ListerAbonnementNewsletter(req, res) {
+    const { codeUtilisateur, filtre } = req.query;
+    const reponse = await modelNewsletter.ListerAbonnementNewsletter(
+      codeUtilisateur,
+      filtre,
+    );
     return res.json(reponse);
   }
 
