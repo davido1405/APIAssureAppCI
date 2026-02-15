@@ -123,5 +123,36 @@ class NewsLetters {
       connexion.release();
     }
   }
+  //Supprimer abonnement
+  static async supprimerabonnement(codePharmacie, codeUtilisateur) {
+    if (!(codePharmacie, codeUtilisateur)) {
+      return {
+        success: false,
+        message: "Veuillez vérifier tous les champs",
+      };
+    }
+    const connexion = await dataBase.getConnection();
+
+    try {
+      const requete = await connexion.query(
+        "DELETE FROM newsletter WHERE code_utilisateur=? AND code_pharmacie=?",
+        [codeUtilisateur, codePharmacie],
+      );
+
+      return {
+        success: true,
+        message:
+          "Votre abonnement pour cette pharmacie a été supprimé avec succès !",
+      };
+    } catch (error) {
+      console.log(error);
+      return {
+        success: false,
+        message: "Impossible de supprimer votre abonnement réesayez plus tard",
+      };
+    } finally {
+      connexion.release();
+    }
+  }
 }
 module.exports = NewsLetters;

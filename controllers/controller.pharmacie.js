@@ -9,7 +9,6 @@ class controllerPharmacie {
     const reponse = await modelPharmacie(codeUtilisateur);
     return res.json(reponse);
   }
-
   //Ajouter une assurance à la liste d'assurance acceptée
   static async ajouterAssurance(req, res) {
     const { codePharmacie, nomAssurance } = req.body;
@@ -19,7 +18,6 @@ class controllerPharmacie {
     );
     return res.json(reponse);
   }
-
   //Rechercher une pharmacie
   static async rechercherPharmacie(req, res) {
     const { nom_assurance, longitude, latitude, adresse_utilisateur } =

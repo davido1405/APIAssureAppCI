@@ -19,7 +19,8 @@ routes.post("/ajouterassurance", (req, res) => {
  * PUT /api/assurance/modifierassurance
  * @summary Modifier une assurance
  * @tags Assurance
- * @param {number} request.path.required - Identifiant de l'assurance à mettre à jour
+ * @param {number} id_assurance.path.required - Identifiant de l'assurance à mettre à jour
+ * @param {string} nouvelle_valeur.path.required - Nouvelle valeur
  * @return {object} 201 - Assurance mise à jour avec succès
  * @return {object} 400 - Mise à jour impossible
  * @return {object} 500 - Erreur serveur
@@ -29,16 +30,29 @@ routes.put("/modifierassurance", (req, res) => {
 });
 
 /**
- * DELETE /api/assurance/supprimerassurance
- * @summary Supprimer une assurance
+ * PUT /api/assurance/desactiverassurance
+ * @summary Désactiver une assurance
  * @tags Assurance
- * @param {number} request.path.required - Identifiant de l'assurance à supprimer
+ * @param {number} id_assurance.path.required - Identifiant de l'assurance à supprimer
  * @return {object} 201 - Assurance supprimée avec succès
  * @return {object} 400 - Mise à jour impossible
  * @return {object} 500 - Erreur serveur
  */
-routes.delete("/supprimerassurance", (req, res) => {
-  return controllerAssurances.supprimerAssurance(req, res);
+routes.put("/desactiverassurance", (req, res) => {
+  return controllerAssurances.desactiverAssurance(req, res);
+});
+
+/**
+ * PUT /api/assurance/activerassurance
+ * @summary Activer une assurance
+ * @tags Assurance
+ * @param {number} id_assurance.path.required - Identifiant de l'assurance à supprimer
+ * @return {object} 201 - Assurance activée avec succès
+ * @return {object} 400 - Mise à jour impossible
+ * @return {object} 500 - Erreur serveur
+ */
+routes.put("/activerassurance", (req, res) => {
+  return controllerAssurances.activerAssurance(req, res);
 });
 
 /**

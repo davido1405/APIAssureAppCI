@@ -14,7 +14,7 @@ class Pharmacie {
   //Générer un code pharmacie
   static genererCodePharmacie() {
     let prefix = "PHARM";
-    let datePaiem = new Date().toString().slice(0, 10).replace(/-/g, "");
+    let datePaiem = new Date().toISOString().slice(0, 10).replace(/-/g, "");
     let partieAlea = this.randomAlphaNum(5);
 
     let code_utilisateur = prefix + "-" + datePaiem + "-" + partieAlea;
@@ -51,7 +51,6 @@ class Pharmacie {
       connexion.release();
     }
   }
-
   //Ajouter à la liste des assurances acceptées
   static async ajouterAssurance(codePharmacie, nomAssurance) {
     const connexion = await dataBase.getConnection();
@@ -94,7 +93,6 @@ class Pharmacie {
       connexion.release();
     }
   }
-
   //Récupérer toutes les pharmacie du système
   static async toutePharmacies(
     limits,
@@ -174,7 +172,6 @@ GROUP BY p.code_pharmacie`,
       connexion.release();
     }
   }
-
   //Rechercher une pharamcie
   static async rechercherPharmacie(
     nom_assurance,
@@ -259,7 +256,6 @@ GROUP BY p.code_pharmacie`,
       connexion.release();
     }
   }
-
   //Ajouter une pharmacie
   static async ajouterPharmacie(
     code_gerant,

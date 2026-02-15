@@ -11,10 +11,13 @@ class utilisateur {
   //Générer un code utilisateur
   static genererCodeUtilisateur() {
     let prefix = "USER";
-    let datePaiem = new Date().toString().slice(0, 10).replace(/-/g, "");
+    let dateInscription = new Date()
+      .toISOString()
+      .slice(0, 10)
+      .replace(/-/g, "");
     let partieAlea = this.randomAlphaNum(5);
 
-    let code_utilisateur = prefix + "-" + datePaiem + "-" + partieAlea;
+    let code_utilisateur = prefix + "-" + dateInscription + "-" + partieAlea;
     return code_utilisateur;
   }
   //Inscription
