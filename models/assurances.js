@@ -9,7 +9,7 @@ class assurance {
 
     try {
       const requete = await connexion.query(
-        "SELECT * FROM assurances WHERE id_satut=1",
+        "SELECT * FROM assurances WHERE id_statut=1",
       );
       const assurances = requete[0];
 

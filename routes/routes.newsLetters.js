@@ -9,7 +9,7 @@ const routes = express.Router();
  * @summary Liste des abonnement de l'utilisateur
  * @tags NewsLetters
  * @param {string} codeUtilisateur.query.required - Code de l'utilisateur dont on veut la liste d'abonnement
- * @param {string} filtre.path - Code de l'utilisateur dont on veut la liste d'abonnement
+ * @param {string} filtre.path - Filtre selon le statut (Actif,Inactif) pour la liste d'abonnement
  * @return {object} 201 - Liste des abonnement récupéré avec succès
  * @return {object} 400 - Aucuns abonnement en cours
  * @return {object} 409 - Impossible de récupérer la liste des abonnements
@@ -36,28 +36,11 @@ routes.get("/abonnement", (req, res) => {
 routes.post("/sabonner", (req, res) => {
   return controllerNewsletters.sabonner(req, res);
 });
-
-/**
- * PUT /api/newsLetters/etatabonnement
- * @summary Mettre à jour l'abonnement aux newsletters
- * @tags NewsLetters
- * @param {string} request.body -Code pharmacie pour l'abonnement
- * @param {string} request.body -Code de l'utilisateur qui s'abonne
- * @return {object} 201 - Abonnement mis à jour avec succès
- * @return {object} 400 - Abonnement introuvable
- * @return {object} 409 - Abonnement impossible
- * @return {object} 500 - Erreur serveur
- */
-routes.put("/etatabonnement", (req, res) => {
-  return controllerNewsletters.etatabonnement(req, res);
-});
-
 /**
  * DELETE /api/newsLetters/supprimerabonnement
  * @summary Supprimer un abonnement au newsLetters d'une pharmacie
  * @tags NewsLetters
- * @param {string} request.body.required -Code pharmacie pour l'abonnement
- * @param {string} request.body.required -Code de l'utilisateur qui s'abonne
+ * @param {infosAbonnement} request.body.required -Infos nécessaire à la suppression de l'abonnement
  * @return {object} 201 - Abonnement supprimé avec succès
  * @return {object} 400 - Abonnement introuvable
  * @return {object} 409 - Suppression de l'abonnement impossible

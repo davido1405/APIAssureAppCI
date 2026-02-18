@@ -21,7 +21,7 @@ routes.post("/profilpharmacie", (req, res) => {
 /**
  * @typedef {object} informationAjoutAssurance
  * @property {string} codePharmacie.required - Code de la pharmacie qui ajoute une assurance
- * @property {string} nomAssurance.required - Nom de l'assurance à ajouter
+ * @property {Array[]} liste_assurance.required - Nom de l'assurance à ajouter
  */
 /**
  * POST /api/pharmacie/ajouterassurance
@@ -32,7 +32,7 @@ routes.post("/profilpharmacie", (req, res) => {
  * @return {object} 400 - Ajout de l'assurance impossible
  * @return {object} 500 - Erreur serveur
  */
-routes.post("/ajoutassurance", (req, res) => {
+routes.post("/ajouterassurance", (req, res) => {
   return controllerPharmacie.ajouterAssurance(req, res);
 });
 
@@ -42,7 +42,7 @@ routes.post("/ajoutassurance", (req, res) => {
  * @property {string} code_gerant.body.required - Code de l'utilisateur qui gère la pharmacie
  * @property {string} nom_pharmacie.body.required - Nom de la pharmacie à enregistrer
  * @property {string} photo_pharmacie.body.required - Photo de la pharmacie à enregistrer
- * @property {string} numeros_pharmacie.body.required - Numéros de la pharmacie à enregistrer
+ * @property {string} numero_pharmacie.body.required - Numéros de la pharmacie à enregistrer
  * @property {string} email_pharmacie.body.required - Email de la pharmacie à enregistrer
  * @property {number} latitudePharmacie.body.required - latitude de la position de la pharmacie à enregistrer
  * @property {number} longitudePharmacie.body.required - longitude de la position de la pharmacie à enregistrer
@@ -65,14 +65,14 @@ routes.post("/ajouterPharmacie", (req, res) => {
 //Rechercher une pharmacie
 /**
  * @typedef {object} infosRecherchePharmacie
- * @property {number} nom_assurance.required -Nom de l'assurance recherchée
+ * @property {string} nom_assurance.required -Nom de l'assurance recherchée
  * @property {number} longitude -Longitude de la position de l'utilisateur
  * @property {number} latitude -Latitude de la position de l'utilisateur
  * @property {string} adresse_utilisateur.required -Adresse fourni par l'utilisateur à l'inscription
  */
 /**
  * GET /api/pharmacie/rechercher
- * @summary Récupérer toutes les pharmacies
+ * @summary Rechercher  des pharmacies
  * @tags Pharmacie
  * @param {infosRecherchePharmacie} request.path.required -Les informations nécessaire à la récupération des
  * @return {object} 201 - Pharmacie récupérées avec succès

@@ -31,9 +31,8 @@ class utilisateur {
     adresseUtilisateur,
   ) {
     const connexion = await dataBase.getConnection();
+    await connexion.beginTransaction();
     try {
-      await connexion.beginTransaction();
-
       //Vérifier qu'il n'y a pas déjà un compte avec ce numéro
       const requ1 = await connexion.query(
         "SELECT code_utilisateur FROM utilisateurs WHERE numeros_utilisateur =?",
@@ -75,14 +74,10 @@ class utilisateur {
         idAssurance = ajout[0].insertId;
       }
       const code_utilisateur = this.genererCodeUtilisateur();
-      //Inserer dans adresse utilisateur
-      const rows2 = await connexion.query(
-        "INSERT INTO adresse_utilisateur (code_utilisateur,adresse_fournit) VALUES(?,?)",
-        [code_utilisateur, adresseUtilisateur],
-      );
 
+      //Créer l'utilisateur
       const rows = await connexion.query(
-        "INSERT INTO utilisateurs (code_utilisateur,nom_utilisateur,prenom_utilisateur,numeros_utilisateur,password_hash,id_type_utilisateur,id_assurance,id_adresse) VALUES (?,?,?,?,?,?,?,?)",
+        "INSERT INTO utilisateurs (code_utilisateur,nom_utilisateur,prenom_utilisateur,numeros_utilisateur,password_hash,id_type_utilisateur,id_assurance) VALUES (?,?,?,?,?,?,?)",
         [
           code_utilisateur,
           nomUtilisateur,
@@ -91,8 +86,18 @@ class utilisateur {
           codePinUtilisateur,
           type,
           idAssurance,
-          rows2[0].insertId,
         ],
+      );
+      //Inserer dans adresse utilisateur
+      const rows2 = await connexion.query(
+        "INSERT INTO adresse_utilisateur (code_utilisateur,adresse_fournit) VALUES(?,?)",
+        [code_utilisateur, adresseUtilisateur],
+      );
+
+      //Mettre maintenant l'adresse à jour
+      const rows3 = await connexion.query(
+        "UPDATE utilisateurs SET id_adresse=? WHERE code_utilisateur=?",
+        [rows2[0].insertId, code_utilisateur],
       );
 
       await connexion.commit();
@@ -196,7 +201,7 @@ class utilisateur {
       }
       return {
         success: true,
-        message: "Utilisateur authentifié avec succès !",
+        message: "Profil utilisateur récupéré avec succès !",
         data: {
           code_utilisateur: utilisateur.code_utilisateur,
           nom_utilisateur: utilisateur.nom_utilisateur,

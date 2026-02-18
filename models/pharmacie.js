@@ -21,17 +21,24 @@ class Pharmacie {
     return code_utilisateur;
   }
   //Récupérer le profil de la pharmacie
-  static async profilPharmacie(codeUtilisateur) {
+  static async profilPharmacie(code_gerant) {
     const connexion = await dataBase.getConnection();
     try {
       const requete = await connexion.query(
         "SELECT code_pharmacie FROM utilisateur_gerant WHERE code_utilisateur=? AND id_statut=?",
-        [codeUtilisateur, 1],
+        [code_gerant, 1],
       );
       const code_pharma = requete[0][0]?.code_pharmacie;
+
+      if (!code_pharma) {
+        return {
+          success: false,
+          message: "Aucune pharmacie trouvé",
+        };
+      }
       //Récupérer maintenant le profil de la pharmacie
       const requete2 = await connexion.query(
-        "SELECT p.code_pharmacie,p.nom_pharmacie,p.photo_pharmacie,p.numeros_pharmacie,p.email_pharmacie, a.longitude,a.latitude,a.adresse_frounit,s.libelle_statut FROM pharmacie as p INNER JOIN adresse_pharmacie as a ON a.code_pharmacie=p.code_pharmacie INNER JOIN statut as s ON s.id_statut=p.id_statut WHERE p.code_pharmacie=?",
+        "SELECT p.code_pharmacie,p.nom_pharmacie,p.photo_pharmacie,p.numeros_pharmacie,p.email_pharmacie, a.longitude,a.latitude,a.adresse_fournit,s.libelle_statut as statut_pharmacie FROM pharmacie as p INNER JOIN adresse_pharmacie as a ON a.code_pharmacie=p.code_pharmacie INNER JOIN statut as s ON s.id_statut=p.id_statut WHERE p.code_pharmacie=?",
         [code_pharma],
       );
       const profilPharma = requete2[0][0];
@@ -52,27 +59,36 @@ class Pharmacie {
     }
   }
   //Ajouter à la liste des assurances acceptées
-  static async ajouterAssurance(codePharmacie, nomAssurance) {
+  static async ajouterAssurance(codePharmacie, liste_assurance) {
+    if (!codePharmacie || !Array.isArray(liste_assurance)) {
+      return {
+        success: false,
+        message: "Veuillez vérifier tous les champs",
+      };
+    }
+
     const connexion = await dataBase.getConnection();
     try {
       await connexion.beginTransaction();
-      const requete = await connexion.query(
-        "SELECT id_assurance FROM assurance WHERE nom_assurance=?",
-        [nomAssurance],
-      );
-      let id_assurance = requete[0][0]?.id_assurance;
-      if (!id_assurance) {
-        const requete2 = await connexion.query(
-          "INSERT INTO assurance(nom_assurance)VALUES(?)",
-          [nomAssurance],
+      for (const assurance of liste_assurance) {
+        const requete = await connexion.query(
+          "SELECT id_assurance FROM assurances WHERE nom_assurance=?",
+          [assurance],
         );
-        id_assurance = requete2.insertId;
+        let id_assurance = requete[0][0]?.id_assurance;
+        if (!id_assurance) {
+          const requete2 = await connexion.query(
+            "INSERT INTO assurances(nom_assurance)VALUES(?)",
+            [assurance],
+          );
+          id_assurance = requete2[0].insertId;
+        }
+        //Enregistrement de l'assurance
+        const requete3 = await connexion.query(
+          "INSERT INTO pharmacie_assurance(code_pharmacie,id_assurance) VALUES (?,?)",
+          [codePharmacie, id_assurance],
+        );
       }
-      //Enregistrement de l'assurance
-      const requete3 = await connexion.query(
-        "INSERT INTO pharmacie_assurance(code_pharmacie,id_assurance) VALUES (?,?)",
-        [codePharmacie, id_assurance],
-      );
 
       connexion.commit();
 
@@ -262,8 +278,8 @@ GROUP BY p.code_pharmacie`,
     nom_pharmacie,
     photo_pharmacie,
     numero_pharmacie,
-    latitude_pharmacie,
-    longitude_pharmacie,
+    latitudePharmacie,
+    longitudePharmacie,
     adresse_fournit,
     email_pharmacie,
     liste_assurance_accepte,
@@ -276,11 +292,11 @@ GROUP BY p.code_pharmacie`,
         nom_pharmacie &&
         photo_pharmacie &&
         numero_pharmacie &&
-        latitude_pharmacie &&
-        longitude_pharmacie &&
+        latitudePharmacie &&
+        longitudePharmacie &&
         email_pharmacie &&
         adresse_fournit &&
-        liste_assurance_accepte
+        Array.isArray(liste_assurance_accepte)
       )
     ) {
       return {
@@ -305,22 +321,30 @@ GROUP BY p.code_pharmacie`,
       const code_pharma = this.genererCodePharmacie();
       //Enregistrement dans pharmacies
       const requete2 = await connexion.query(
-        "INSERT INTO pharmacie(code_pharmacie,nom_pharmacie,photo_pharmacie,numeros_pharmacie,email_pharmacie) VALUES(?,?,?,?,?)",
+        "INSERT INTO pharmacie(code_pharmacie,nom_pharmacie,photo_pharmacie,numeros_pharmacie,id_statut,email_pharmacie) VALUES(?,?,?,?,?,?)",
         [
           code_pharma,
           nom_pharmacie,
           photo_pharmacie,
           numero_pharmacie,
+          1,
           email_pharmacie,
         ],
       );
       //Insérer dans adresse_pharmacie
       const requete3 = await connexion.query(
         "INSERT INTO adresse_pharmacie (code_pharmacie,latitude,longitude,adresse_fournit) VALUES (?,?,?,?)",
-        [code_pharma, latitude_pharmacie, longitude_pharmacie, adresse_fournit],
+        [code_pharma, latitudePharmacie, longitudePharmacie, adresse_fournit],
       );
+
+      //Mettre à jour l'adresse dans pharmacie
+      const merde = await connexion.query(
+        "UPDATE pharmacie set id_adresse=? WHERE code_pharmacie=?",
+        [requete3[0].insertId, code_pharma],
+      );
+
       //Ajouter les assurances acceptées
-      liste_assurance_accepte.forEach(async (assurance) => {
+      for (const assurance of liste_assurance_accepte) {
         //Vérifier si l'assurance est déjà dans le système
         const requete4 = await connexion.query(
           "SELECT id_assurance FROM assurances WHERE nom_assurance=?",
@@ -329,10 +353,10 @@ GROUP BY p.code_pharmacie`,
         let id_assurance = requete4[0][0]?.id_assurance;
         if (!id_assurance) {
           const requete5 = await connexion.query(
-            "INSERT INTO assurance(nom_assurance) VALUES(?)",
+            "INSERT INTO assurances(nom_assurance) VALUES(?)",
             [assurance],
           );
-          id_assurance = requete5.insertId;
+          id_assurance = requete5[0].insertId;
         }
 
         //Enregistrer la liste des assurances acceptées par la pharmacie
@@ -340,22 +364,22 @@ GROUP BY p.code_pharmacie`,
           "INSERT INTO pharmacie_assurance(code_pharmacie,id_assurance) VALUES(?,?)",
           [code_pharma, id_assurance],
         );
-      });
+      }
 
       //Enregistrer le gérant de la pharmacie
       const requete7 = await connexion.query(
-        "INSERT INTO utilisateur_gerant(code_utilisateur,code_pharmacie) VALUES(?,?)",
-        [code_gerant, code_pharma],
+        "INSERT INTO utilisateur_gerant(code_utilisateur,code_pharmacie,id_statut) VALUES(?,?,?)",
+        [code_gerant, code_pharma, 1],
       );
 
       //Mettre à jour le type utilisateur
       const requete8 = await connexion.query(
-        "UPDATE utilisateurs SET (id_type_utilisateur=?) WHERE code_utilisateur=?",
+        "UPDATE utilisateurs SET id_type_utilisateur=? WHERE code_utilisateur=?",
         [3, code_gerant],
       );
 
       //Valider toutes les opérations
-      connexion.commit();
+      await connexion.commit();
 
       return {
         success: true,

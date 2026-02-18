@@ -22,16 +22,6 @@ class controllerNewsletters {
     return res.json(reponse);
   }
 
-  //Activer ou désactiver l'abonnement
-  static async etatabonnement(req, res) {
-    const { codePharmacie, codeUtilisateur } = req.body;
-    const reponse = await modelNewsletter.etatabonnement(
-      codePharmacie,
-      codeUtilisateur,
-    );
-    return res.json(reponse);
-  }
-
   //Supprimer l'abonnement
   static async supprimerabonnement(req, res) {
     const { codePharmacie, codeUtilisateur } = req.body;

@@ -36,7 +36,7 @@ routes.post("/inscription", (req, res) => {
  * @property {string} codePinUtilisateur.required -Code pin utilisateur pour la connexion
  */
 /**
- * POST /api/utilisateur/conneixon
+ * POST /api/utilisateur/connexion
  * @summary Connexion utilisateur
  * @tags Utilisateur
  * @param {connexionInfos} request.body.required -Paramètre de requete

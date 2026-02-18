@@ -5,16 +5,16 @@ const modelPharmacie = require("../models/pharmacie");
 class controllerPharmacie {
   //Récupérer le profile de la pharmacie
   static async profilPharmacie(req, res) {
-    const { codeUtilisateur } = req.body;
-    const reponse = await modelPharmacie(codeUtilisateur);
+    const { code_gerant } = req.body;
+    const reponse = await modelPharmacie.profilPharmacie(code_gerant);
     return res.json(reponse);
   }
   //Ajouter une assurance à la liste d'assurance acceptée
   static async ajouterAssurance(req, res) {
-    const { codePharmacie, nomAssurance } = req.body;
+    const { codePharmacie, liste_assurance } = req.body;
     const reponse = await modelPharmacie.ajouterAssurance(
       codePharmacie,
-      nomAssurance,
+      liste_assurance,
     );
     return res.json(reponse);
   }
@@ -44,8 +44,8 @@ class controllerPharmacie {
       photo_pharmacie,
       numero_pharmacie,
       email_pharmacie,
-      latitude_pharmacie,
-      longitude_pharmacie,
+      latitudePharmacie,
+      longitudePharmacie,
       adresse_fournit,
       liste_assurance_accepte,
     } = req.body;
@@ -55,8 +55,8 @@ class controllerPharmacie {
       photo_pharmacie,
       numero_pharmacie,
       email_pharmacie,
-      latitude_pharmacie,
-      longitude_pharmacie,
+      latitudePharmacie,
+      longitudePharmacie,
       adresse_fournit,
       liste_assurance_accepte,
     );

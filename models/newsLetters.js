@@ -134,6 +134,42 @@ class NewsLetters {
     const connexion = await dataBase.getConnection();
 
     try {
+      //Vérifier l'existance du compte
+      const requete1 = await connexion.query(
+        "SELECT code_utilisateur FROM utilisateurs WHERE code_utilisateur=?",
+        [codeUtilisateur],
+      );
+      const existance = requete1[0][0];
+      if (!existance) {
+        return {
+          success: false,
+          message: "Veuillez vous inscrir pour pouvoir vous abonner",
+        };
+      }
+
+      //Vérifier l'existance de la pharmacie
+      const requete0 = await connexion.query(
+        "SELECT code_pharmacie FROM pharmacie WHERE code_pharmacie=?",
+        [codePharmacie],
+      );
+      const existancePharma = requete0[0][0];
+      if (!existancePharma) {
+        return {
+          success: false,
+          message: "Cette pharmacie n'existe pas",
+        };
+      }
+      const requete2 = await connexion.query(
+        "SELECT id_newsletter FROM newsletter WHERE code_utilisateur=? AND code_pharmacie=?",
+        [codeUtilisateur, codePharmacie],
+      );
+      const abonnement = requete2[0][0];
+      if (!abonnement) {
+        return {
+          success: false,
+          message: "Vous n'avez aucun abonnement en cours pour cette pharmacie",
+        };
+      }
       const requete = await connexion.query(
         "DELETE FROM newsletter WHERE code_utilisateur=? AND code_pharmacie=?",
         [codeUtilisateur, codePharmacie],
