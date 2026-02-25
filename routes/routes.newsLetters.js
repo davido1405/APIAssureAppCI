@@ -8,14 +8,13 @@ const routes = express.Router();
  * GET /api/newsLetters/abonnement
  * @summary Liste des abonnement de l'utilisateur
  * @tags NewsLetters
- * @param {string} codeUtilisateur.query.required - Code de l'utilisateur dont on veut la liste d'abonnement
- * @param {string} filtre.path - Filtre selon le statut (Actif,Inactif) pour la liste d'abonnement
+ * @param {string} codeUtilisateur.required - Code de l'utilisateur dont on veut la liste d'abonnement
  * @return {object} 201 - Liste des abonnement récupéré avec succès
  * @return {object} 400 - Aucuns abonnement en cours
  * @return {object} 409 - Impossible de récupérer la liste des abonnements
  * @return {object} 500 - Erreur serveur
  */
-routes.get("/abonnement", (req, res) => {
+routes.post("/abonnement", (req, res) => {
   return controllerNewsletters.ListerAbonnementNewsletter(req, res);
 });
 /**

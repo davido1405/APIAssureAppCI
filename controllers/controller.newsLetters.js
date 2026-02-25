@@ -4,11 +4,9 @@ const modelNewsletter = require("../models/newsLetters");
 class controllerNewsletters {
   //Récupérer la liste des abonnements d'un utilisateur
   static async ListerAbonnementNewsletter(req, res) {
-    const { codeUtilisateur, filtre } = req.query;
-    const reponse = await modelNewsletter.ListerAbonnementNewsletter(
-      codeUtilisateur,
-      filtre,
-    );
+    const { codeUtilisateur } = req.body;
+    const reponse =
+      await modelNewsletter.ListerAbonnementNewsletter(codeUtilisateur);
     return res.json(reponse);
   }
 

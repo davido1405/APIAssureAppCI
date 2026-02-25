@@ -2,7 +2,7 @@ const dataBase = require("../config/db_config.js");
 
 class NewsLetters {
   //Lister touts les abonnement
-  static async ListerAbonnementNewsletter(codeUtilisateur, filtre) {
+  static async ListerAbonnementNewsletter(codeUtilisateur) {
     if (!codeUtilisateur) {
       return {
         success: false,
@@ -12,8 +12,8 @@ class NewsLetters {
     const connexion = await dataBase.getConnection();
 
     const requete = await connexion.query(
-      `SELECT n.id_newsletter,n.date_abonnement,p.code_pharmacie,p.nom_pharmacie,p.numeros_pharmacie,a.latitude,a.longitude,a.adresse_fournit,p.email_pharmacie,sp.libelle_statut as statut_pharmacie,sn.libelle_statut as statut_abonnement FROM newsletter as n INNER JOIN pharmacie as p ON p.code_pharmacie=n.code_pharmacie INNER JOIN adresse_pharmacie as a ON a.code_pharmacie=p.code_pharmacie INNER JOIN statut as sp ON sp.id_statut=p.id_statut INNER JOIN statut as sn ON sn.id_statut=n.id_statut WHERE n.code_utilisateur=? ${filtre ? `AND sn.libelle_statut=?` : ""}`,
-      filtre ? [codeUtilisateur, filtre] : [codeUtilisateur],
+      `SELECT n.id_newsletter,n.date_abonnement,p.code_pharmacie,p.nom_pharmacie,p.numeros_pharmacie,a.latitude,a.longitude,a.adresse_fournit,p.email_pharmacie,sp.libelle_statut as statut_pharmacie,sn.libelle_statut as statut_abonnement FROM newsletter as n INNER JOIN pharmacie as p ON p.code_pharmacie=n.code_pharmacie INNER JOIN adresse_pharmacie as a ON a.code_pharmacie=p.code_pharmacie INNER JOIN statut as sp ON sp.id_statut=p.id_statut INNER JOIN statut as sn ON sn.id_statut=n.id_statut WHERE n.code_utilisateur=?`,
+      [codeUtilisateur],
     );
     const abonnements = requete[0];
 
