@@ -11,6 +11,7 @@ class controllerUtilisateur {
       codePinUtilisateur,
       type_utilisateur,
       assuranceUtilisateur,
+      ville_utilisateur,
       adresseUtilisateur,
     } = req.body;
     const reponse = await modelUtilisateur.inscription(
@@ -20,6 +21,7 @@ class controllerUtilisateur {
       codePinUtilisateur,
       type_utilisateur,
       assuranceUtilisateur,
+      ville_utilisateur,
       adresseUtilisateur,
     );
     return res.json(reponse);
@@ -37,8 +39,8 @@ class controllerUtilisateur {
 
   //Récupérer le profil utilisateur
   static async profilUtilisateur(req, res) {
-    const { codeUtilisateur } = req.body;
-    const reponse = await modelUtilisateur.profilUtilisateur(codeUtilisateur);
+    const { code_utilisateur } = req.body;
+    const reponse = await modelUtilisateur.profilUtilisateur(code_utilisateur);
     return res.json(reponse);
   }
 
@@ -58,6 +60,31 @@ class controllerUtilisateur {
     );
 
     return res.json(reponse);
+  }
+
+  //Envoyer localisation
+  static async envoyerLocalisation(req, res) {
+    const [code_utilisateur, latitude, longitude] = req.path;
+    if (!(code_utilisateur || latitude || longitude)) {
+      return res.status(400).json({
+        success: false,
+        message: "Veuillez vérifier tous les champs",
+      });
+    }
+    const reponse = await modelUtilisateur.envoyerLocalisation(
+      code_utilisateur,
+      latitude,
+      longitude,
+    );
+
+    if (reponse) {
+      return res.status(200).json(reponse);
+    } else {
+      return res.status(500).json({
+        success: false,
+        message: "Erreur server",
+      });
+    }
   }
 }
 

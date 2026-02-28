@@ -43,9 +43,11 @@ routes.post("/ajouterassurance", (req, res) => {
  * @property {string} nom_pharmacie.body.required - Nom de la pharmacie à enregistrer
  * @property {string} photo_pharmacie.body.required - Photo de la pharmacie à enregistrer
  * @property {string} numero_pharmacie.body.required - Numéros de la pharmacie à enregistrer
+ * @property {string} horraires_ouverture.body.required - Les horraires d'ouverture de la pharmacie
  * @property {string} email_pharmacie.body.required - Email de la pharmacie à enregistrer
  * @property {number} latitudePharmacie.body.required - latitude de la position de la pharmacie à enregistrer
  * @property {number} longitudePharmacie.body.required - longitude de la position de la pharmacie à enregistrer
+ * @property {string} ville_pharmacie.body.required - La ville où la pharmacie exerce
  * @property {string} adresse_fournit.body.required - Adresse fournit par la pharmacie
  * @property {Array[]} liste_assurance_accepte.body.required - Liste des assurances acceptées
  */

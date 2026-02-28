@@ -28,6 +28,7 @@ class utilisateur {
     codePinUtilisateur,
     type_utilisateur,
     assuranceUtilisateur,
+    ville_utilisateur,
     adresseUtilisateur,
   ) {
     const connexion = await dataBase.getConnection();
@@ -43,7 +44,7 @@ class utilisateur {
         await connexion.rollback();
         return {
           success: false,
-          message: "Un compte existe déjà pour ce numéro",
+          message: "Un compte existe déjà pour ce numéro.",
         };
       }
       //Récupérer l'id_type_utilisateur
@@ -88,10 +89,26 @@ class utilisateur {
           idAssurance,
         ],
       );
+
+      //Récupérer l'id_ville avant
+      const [verifVille] = await connexion.query(
+        "SELECT id_ville FROM villes where nom_ville=?",
+        [ville_utilisateur],
+      );
+      let id_ville;
+      if (verifVille.length > 0) {
+        id_ville = verifVille[0].id_ville;
+      } else {
+        const [ajouterVille] = await connexion.query(
+          "INSERT INTO villes(nom_ville)VALUES(?)",
+          [ville_utilisateur],
+        );
+        id_ville = ajouterVille.insertId;
+      }
       //Inserer dans adresse utilisateur
       const rows2 = await connexion.query(
-        "INSERT INTO adresse_utilisateur (code_utilisateur,adresse_fournit) VALUES(?,?)",
-        [code_utilisateur, adresseUtilisateur],
+        "INSERT INTO adresse_utilisateur (code_utilisateur,adresse_fournit,id_ville) VALUES(?,?,?)",
+        [code_utilisateur, adresseUtilisateur, id_ville],
       );
 
       //Mettre maintenant l'adresse à jour
@@ -102,17 +119,22 @@ class utilisateur {
 
       await connexion.commit();
 
+      //Juste pour les tests
+      const jwt_tokens = "xdfkgjsnfsdfs5674gfdgrd684se-dfsgà)";
+
       return {
         success: true,
         message: "Inscription effectuée avec succès !",
         data: {
+          code_utilisateur: code_utilisateur,
           nom_utilisateur: nomUtilisateur,
           prenom_utilisateur: prenomUtilisateur,
           numeros_utilisateur: numeroUtilisateur,
-          password_hash: codePinUtilisateur,
           type_utilisateur: type_utilisateur,
           assurance_utilisateur: assuranceUtilisateur,
           adresse_utilisateur: adresseUtilisateur,
+          ville_utilisateur: ville_utilisateur,
+          jwt_tokens: jwt_tokens,
         },
       };
     } catch (error) {
@@ -137,7 +159,7 @@ class utilisateur {
     const connexion = await dataBase.getConnection();
     try {
       const requete = await connexion.query(
-        "SELECT u.code_utilisateur,u.nom_utilisateur,u.prenom_utilisateur,u.numeros_utilisateur,u.password_hash,u.fcm_tokens,t.libelle_type_utilisateur,a.nom_assurance,ad.adresse_fournit FROM utilisateurs as u INNER JOIN type_utilisateur as t ON t.id_type_utilisateur=u.id_type_utilisateur INNER JOIN assurances as a ON a.id_assurance=u.id_assurance INNER JOIN adresse_utilisateur as ad ON ad.id_adresse=u.id_adresse WHERE numeros_utilisateur=?",
+        "SELECT u.code_utilisateur,u.nom_utilisateur,u.prenom_utilisateur,u.numeros_utilisateur,u.password_hash,u.fcm_tokens,t.libelle_type_utilisateur,a.nom_assurance,ad.adresse_fournit,v.nom_ville as ville_utilisateur FROM utilisateurs as u INNER JOIN type_utilisateur as t ON t.id_type_utilisateur=u.id_type_utilisateur LEFT JOIN assurances as a ON a.id_assurance=u.id_assurance LEFT JOIN adresse_utilisateur as ad ON ad.id_adresse=u.id_adresse INNER JOIN villes as v ON v.id_ville=ad.id_ville WHERE numeros_utilisateur=?",
         [numeroUtilisateur],
       );
       const utilisateur = requete[0][0];
@@ -169,6 +191,7 @@ class utilisateur {
           type_utilisateur: utilisateur.libelle_type_utilisateur,
           assurance_utilisateur: utilisateur.nom_assurance,
           adresse_utilisateur: utilisateur.adresse_fournit,
+          ville_utilisateur: utilisateur.ville_utilisateur,
           jwt_tokens: jwt_tokens,
         },
       };
@@ -178,8 +201,8 @@ class utilisateur {
   }
 
   //Récupérer le profil
-  static async profilUtilisateur(codeUtilisateur) {
-    if (!codeUtilisateur) {
+  static async profilUtilisateur(code_utilisateur) {
+    if (!code_utilisateur) {
       return {
         success: false,
         message: "Veuillez vérifier tous les champs. Merci",
@@ -188,8 +211,8 @@ class utilisateur {
     const connexion = await dataBase.getConnection();
     try {
       const requete = await connexion.query(
-        "SELECT u.code_utilisateur,u.nom_utilisateur,u.prenom_utilisateur,u.numeros_utilisateur,u.password_hash,u.fcm_tokens,t.libelle_type_utilisateur,a.nom_assurance,ad.adresse_fournit FROM utilisateurs as u INNER JOIN type_utilisateur as t ON t.id_type_utilisateur=u.id_type_utilisateur INNER JOIN assurances as a ON a.id_assurance=u.id_assurance INNER JOIN adresse_utilisateur as ad ON ad.id_adresse=u.id_adresse WHERE u.code_utilisateur=?",
-        [codeUtilisateur],
+        "SELECT u.code_utilisateur,u.nom_utilisateur,u.prenom_utilisateur,u.numeros_utilisateur,u.fcm_tokens,t.libelle_type_utilisateur,a.nom_assurance,ad.adresse_fournit,v.nom_ville as ville_utilisateur FROM utilisateurs as u INNER JOIN type_utilisateur as t ON t.id_type_utilisateur=u.id_type_utilisateur LEFT JOIN assurances as a ON a.id_assurance=u.id_assurance LEFT JOIN adresse_utilisateur as ad ON ad.id_adresse=u.id_adresse LEFT JOIN villes as v ON v.id_ville=ad.id_ville WHERE u.code_utilisateur=?",
+        [code_utilisateur],
       );
       const utilisateur = requete[0][0];
 
@@ -199,6 +222,10 @@ class utilisateur {
           message: "Aucun profil trouvé pour cet utilisateur",
         };
       }
+
+      //Juste pour les tests
+      const jwt_tokens = "xdfkgjsnfsdfs5674gfdgrd684se-dfsgà)";
+
       return {
         success: true,
         message: "Profil utilisateur récupéré avec succès !",
@@ -210,6 +237,8 @@ class utilisateur {
           type_utilisateur: utilisateur.libelle_type_utilisateur,
           assurance_utilisateur: utilisateur.nom_assurance,
           adresse_utilisateur: utilisateur.adresse_fournit,
+          ville_utilisateur: utilisateur.ville_utilisateur,
+          jwt_tokens: jwt_tokens,
         },
       };
     } catch (error) {
@@ -259,7 +288,45 @@ class utilisateur {
       connexion.release();
     }
   }
+
+  //Envoyer position de l'utilisateur
+  static async envoyerLocalisation(code_utilisateur, latitude, longitude) {
+    const connexion = await dataBase.getConnection();
+    try {
+      await connexion.beginTransaction();
+      const requete = await connexion.query(
+        "SELECT code_utilisateur FROM utilisateurs WHERE code_utilisateur=?",
+        [code_utilisateur],
+      );
+      const utilisateur = requete[0][0]?.code_utilisateur;
+      if (!utilisateur) {
+        return {
+          success: false,
+          message: "Aucun utilisateur trouvé. Veuillez vous inscrire",
+        };
+      }
+      //Mise à jour de la table adresseUtilisateur
+      const requete3 = await connexion.query(
+        "UPADTE adresse_utilisateur SET latitude=?,longitude=? WHERE code_utilisateur=?",
+        [latitude, longitude, utilisateur],
+      );
+
+      connexion.commit();
+
+      return {
+        success: true,
+        message: "Position envoyé",
+      };
+    } catch (error) {
+      await connexion.rollback();
+      console.log(error);
+      return {
+        success: false,
+        message: "Impossible d'envoyer la position de l'utilisateur",
+      };
+    } finally {
+      connexion.release();
+    }
+  }
 }
 module.exports = utilisateur;
-
-//https://youtu.be/YkBOkV0s5eQ?si=LkjKoQtlYbqwsVoj

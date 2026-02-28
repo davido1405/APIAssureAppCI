@@ -43,9 +43,11 @@ class controllerPharmacie {
       nom_pharmacie,
       photo_pharmacie,
       numero_pharmacie,
+      horraires_ouverture,
       email_pharmacie,
       latitudePharmacie,
       longitudePharmacie,
+      ville_pharmacie,
       adresse_fournit,
       liste_assurance_accepte,
     } = req.body;
@@ -54,9 +56,11 @@ class controllerPharmacie {
       nom_pharmacie,
       photo_pharmacie,
       numero_pharmacie,
+      horraires_ouverture,
       email_pharmacie,
       latitudePharmacie,
       longitudePharmacie,
+      ville_pharmacie,
       adresse_fournit,
       liste_assurance_accepte,
     );

@@ -38,7 +38,7 @@ class Pharmacie {
       }
       //Récupérer maintenant le profil de la pharmacie
       const requete2 = await connexion.query(
-        "SELECT p.code_pharmacie,p.nom_pharmacie,p.photo_pharmacie,p.numeros_pharmacie,p.email_pharmacie, a.longitude,a.latitude,a.adresse_fournit,s.libelle_statut as statut_pharmacie FROM pharmacie as p INNER JOIN adresse_pharmacie as a ON a.code_pharmacie=p.code_pharmacie INNER JOIN statut as s ON s.id_statut=p.id_statut WHERE p.code_pharmacie=?",
+        "SELECT p.code_pharmacie,p.nom_pharmacie,p.photo_pharmacie,p.numeros_pharmacie,p.horraires_ouverture,p.email_pharmacie, a.longitude,a.latitude,a.adresse_fournit,v.nom_ville,s.libelle_statut as statut_pharmacie FROM pharmacie as p INNER JOIN adresse_pharmacie as a ON a.code_pharmacie=p.code_pharmacie INNER JOIN villes as v ON v.id_ville=a.id_ville INNER JOIN statut as s ON s.id_statut=p.id_statut WHERE p.code_pharmacie=?",
         [code_pharma],
       );
       const profilPharma = requete2[0][0];
@@ -126,9 +126,11 @@ class Pharmacie {
   p.photo_pharmacie,
   p.numeros_pharmacie,
   p.email_pharmacie,
+  p.horraires_ouverture,
   a.longitude,
   a.latitude,
   a.adresse_fournit,
+  v.nom_ville,
   s.libelle_statut,
   GROUP_CONCAT(ass.nom_assurance SEPARATOR ', ') as assurances_acceptees
 FROM pharmacie as p 
@@ -136,6 +138,7 @@ INNER JOIN adresse_pharmacie as a ON a.code_pharmacie = p.code_pharmacie
 INNER JOIN statut as s ON s.id_statut = p.id_statut
 LEFT JOIN pharmacie_assurance as pa ON pa.code_pharmacie = p.code_pharmacie
 LEFT JOIN assurances as ass ON ass.id_assurance = pa.id_assurance
+LEFT JOIN villes as v ON v.id_ville=a.id_ville
 GROUP BY p.code_pharmacie`,
       );
 
@@ -174,7 +177,7 @@ GROUP BY p.code_pharmacie`,
         message:
           latitude && longitude
             ? "Liste des pharmacies dans un rayon 1KM"
-            : "Liste des pharmacies triée selon votre position",
+            : "Liste des pharmacies",
         data: pharmacieFiltre.length !== 0 ? pharmacieFiltre : [],
       };
     } catch (error) {
@@ -189,47 +192,44 @@ GROUP BY p.code_pharmacie`,
     }
   }
   //Rechercher une pharamcie
-  static async rechercherPharmacie(
-    nom_assurance,
-    longitude,
-    latitude,
-    adresse_utilisateur,
-  ) {
+  static async rechercherPharmacie(terme_saisi, longitude, latitude) {
     const connexion = await dataBase.getConnection();
 
     try {
       const requete = await connexion.query(
         `SELECT 
-  p.code_pharmacie,
-  p.nom_pharmacie,
-  p.photo_pharmacie,
-  p.numeros_pharmacie,
-  p.email_pharmacie,
-  a.longitude,
-  a.latitude,
-  a.adresse_fournit,
-  s.libelle_statut,
-  GROUP_CONCAT(ass.nom_assurance SEPARATOR ', ') as assurances_acceptees
-FROM pharmacie as p 
-INNER JOIN adresse_pharmacie as a ON a.code_pharmacie = p.code_pharmacie 
-INNER JOIN statut as s ON s.id_statut = p.id_statut
-LEFT JOIN pharmacie_assurance as pa ON pa.code_pharmacie = p.code_pharmacie
-LEFT JOIN assurances as ass ON ass.id_assurance = pa.id_assurance
-GROUP BY p.code_pharmacie`,
+        p.code_pharmacie,
+        p.nom_pharmacie,
+        p.photo_pharmacie,
+        p.numeros_pharmacie,
+        p.email_pharmacie,
+        a.longitude,
+        a.latitude,
+        a.adresse_fournit,
+        v.nom_ville,
+        s.libelle_statut,
+        GROUP_CONCAT(ass.nom_assurance SEPARATOR ', ') as assurances_acceptees
+      FROM pharmacie as p 
+      INNER JOIN adresse_pharmacie as a ON a.code_pharmacie = p.code_pharmacie 
+      INNER JOIN statut as s ON s.id_statut = p.id_statut
+      LEFT JOIN pharmacie_assurance as pa ON pa.code_pharmacie = p.code_pharmacie
+      LEFT JOIN assurances as ass ON ass.id_assurance = pa.id_assurance
+      LEFT JOIN villes as v ON v.id_ville=a.id_ville
+      GROUP BY p.code_pharmacie`,
       );
 
       const Resultatpharmacies = requete[0];
       let pharmacieFiltre = Resultatpharmacies;
 
-      if (adresse_utilisateur || nom_assurance) {
+      if (terme_saisi) {
         pharmacieFiltre = pharmacieFiltre.filter((pharmacie) => {
           return (
-            pharmacie.adresse_fournit
+            pharmacie.nom_pharmacie
               .toLowerCase()
-              .includes(adresse_utilisateur.toLowerCase()) ||
+              .includes(terme_saisi.toLowerCase()) ||
             pharmacie.assurances_acceptees
               ?.toLowerCase()
-              .includes(nom_assurance.toLowerCase())
+              .includes(terme_saisi.toLowerCase())
           );
         });
       }
@@ -238,19 +238,24 @@ GROUP BY p.code_pharmacie`,
         const latitudeUtilisateur = degreesToRadians(latitude);
         const longitudeUtilisateur = degreesToRadians(longitude);
 
-        pharmacieFiltre = pharmacieFiltre.filter((unePharma) => {
-          const latitudePharmacie = degreesToRadians(unePharma.latitude);
-          const longitudePharmacie = degreesToRadians(unePharma.longitude);
+        pharmacieFiltre = pharmacieFiltre
+          .map((unePharma) => {
+            const latitudePharmacie = degreesToRadians(unePharma.latitude);
+            const longitudePharmacie = degreesToRadians(unePharma.longitude);
 
-          const distanceEntre = distance(
-            latitudeUtilisateur,
-            longitudeUtilisateur,
-            latitudePharmacie,
-            longitudePharmacie,
-          );
+            const distanceEntre = distance(
+              latitudeUtilisateur,
+              longitudeUtilisateur,
+              latitudePharmacie,
+              longitudePharmacie,
+            );
 
-          return distanceEntre <= 1000;
-        });
+            return {
+              ...unePharma,
+              distance: distanceEntre, // 👉 ajout ici
+            };
+          })
+          .filter((p) => p.distance <= 1000);
       }
 
       return {
@@ -278,22 +283,25 @@ GROUP BY p.code_pharmacie`,
     nom_pharmacie,
     photo_pharmacie,
     numero_pharmacie,
+    horraires_ouverture,
     latitudePharmacie,
     longitudePharmacie,
+    ville_pharmacie,
     adresse_fournit,
     email_pharmacie,
     liste_assurance_accepte,
   ) {
     const connexion = await dataBase.getConnection();
-
     if (
       !(
         code_gerant &&
         nom_pharmacie &&
         photo_pharmacie &&
         numero_pharmacie &&
+        horraires_ouverture &&
         latitudePharmacie &&
         longitudePharmacie &&
+        ville_pharmacie &&
         email_pharmacie &&
         adresse_fournit &&
         Array.isArray(liste_assurance_accepte)
@@ -304,6 +312,33 @@ GROUP BY p.code_pharmacie`,
         message: "Veuillez vérifier tous les champs",
       };
     }
+
+    // Validation email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email_pharmacie)) {
+      connexion.release();
+      return {
+        success: false,
+        message: "Format d'email invalide",
+      };
+    }
+
+    // Validation coordonnées GPS
+    if (
+      isNaN(latitudePharmacie) ||
+      isNaN(longitudePharmacie) ||
+      latitudePharmacie < -90 ||
+      latitudePharmacie > 90 ||
+      longitudePharmacie < -180 ||
+      longitudePharmacie > 180
+    ) {
+      connexion.release();
+      return {
+        success: false,
+        message: "Coordonnées GPS invalides",
+      };
+    }
+
     await connexion.beginTransaction();
     try {
       //Vérifier l'existance de l'utilisateur gérant
@@ -315,30 +350,83 @@ GROUP BY p.code_pharmacie`,
       if (!existe) {
         return {
           success: false,
-          message: "Veuillez d'abord vous inscrir pour ajouter une pharmacie",
+          message: "Utilisateur introuvable. Veuillez d'abord vous inscrire.",
         };
       }
+
+      const utilisateur = requete1[0];
+
+      // Vérifier que l'utilisateur n'est pas déjà gérant d'une autre pharmacie
+      const [rowsGerant] = await connexion.query(
+        "SELECT * FROM utilisateur_gerant WHERE code_utilisateur = ? AND id_statut = 1",
+        [code_gerant],
+      );
+
+      if (rowsGerant.length > 0) {
+        await connexion.rollback();
+        return {
+          success: false,
+          message: "Vous êtes déjà gérant d'une pharmacie active.",
+        };
+      }
+
+      // ====== 2. VÉRIFIER DOUBLON NOM PHARMACIE ======
+      const [rowsDoublon] = await connexion.query(
+        "SELECT * FROM pharmacie WHERE nom_pharmacie = ? AND id_statut = 1",
+        [nom_pharmacie],
+      );
+
+      if (rowsDoublon.length > 0) {
+        await connexion.rollback();
+        return {
+          success: false,
+          message: "Une pharmacie avec ce nom existe déjà.",
+        };
+      }
+
       const code_pharma = this.genererCodePharmacie();
       //Enregistrement dans pharmacies
       const requete2 = await connexion.query(
-        "INSERT INTO pharmacie(code_pharmacie,nom_pharmacie,photo_pharmacie,numeros_pharmacie,id_statut,email_pharmacie) VALUES(?,?,?,?,?,?)",
+        "INSERT INTO pharmacie(code_pharmacie,nom_pharmacie,photo_pharmacie,numeros_pharmacie,horraires_ouverture,id_statut,email_pharmacie) VALUES(?,?,?,?,?,?,?)",
         [
           code_pharma,
           nom_pharmacie,
           photo_pharmacie,
           numero_pharmacie,
-          1,
+          horraires_ouverture,
+          1, //Actif
           email_pharmacie,
         ],
       );
+      //Récupérer l'id_ville avant
+      const [verifVille] = await connexion.query(
+        "SELECT id_ville FROM villes where nom_ville=?",
+        [ville_pharmacie],
+      );
+      let id_ville;
+      if (verifVille.length > 0) {
+        id_ville = verifVille[0].id_ville;
+      } else {
+        const [ajouterVille] = await connexion.query(
+          "INSERT INTO villes(nom_ville)VALUES(?)",
+          [ville_pharmacie],
+        );
+        id_ville = ajouterVille.insertId;
+      }
       //Insérer dans adresse_pharmacie
       const requete3 = await connexion.query(
-        "INSERT INTO adresse_pharmacie (code_pharmacie,latitude,longitude,adresse_fournit) VALUES (?,?,?,?)",
-        [code_pharma, latitudePharmacie, longitudePharmacie, adresse_fournit],
+        "INSERT INTO adresse_pharmacie (code_pharmacie,latitude,longitude,adresse_fournit,id_ville) VALUES (?,?,?,?,?)",
+        [
+          code_pharma,
+          latitudePharmacie,
+          longitudePharmacie,
+          adresse_fournit,
+          id_ville,
+        ],
       );
 
-      //Mettre à jour l'adresse dans pharmacie
-      const merde = await connexion.query(
+      //Mettre à jour l'id_adresse dans pharmacie
+      const mJAdressePharmacie = await connexion.query(
         "UPDATE pharmacie set id_adresse=? WHERE code_pharmacie=?",
         [requete3[0].insertId, code_pharma],
       );

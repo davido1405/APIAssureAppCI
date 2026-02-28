@@ -12,6 +12,7 @@ const controllerUtilisateur = require("../controllers/controller.utilisateurs");
  * @property {string} codePinUtilisateur.required -Code pin de l'utilisateur
  * @property {string} type_utilisateur.required -Numéro de téléphone de l'utilisateur
  * @property {string} assuranceUtilisateur -Nom de l'assurance de l'utilisateur
+ * @property {string} ville_utilisateur.required -Ville de résidence de l'utilisateur
  * @property {string} adresseUtilisateur -Adresse que l'utilisateur fourni
  */
 //Inscription utilisateur
@@ -56,28 +57,44 @@ routes.post("/connexion", (req, res) => {
  * @property {string} typeUtilisateur -Le type d'utilisateur qu'il est
  * @property {string} nomAssurance -Le nom de l'assurance de l'utilisateur
  * @property {string} adresseUtilisateur -Adresse de l'utilisateur
+ * @property {string} ville_utilisateur - Ville de résidence de l'utilisateur
  * @property {string} jeton_jwt -Jeton JWT pour la sécurisation des requetes
  */
 /**
  * POST /api/utilisateur/profilutilisateur
  * @summary Profil utilisateur
  * @tags Utilisateur
- * @param {string} request.body.required -Code de l'utilisateur dont on veut le profil
+ * @param {string} code_utilisateur.required - Code de l'utilisateur dont on veut le profil
  * @return {InfoSession} 201 - Profil utilisateur obtenu avec succès
  * @return {object} 400 - Données invalides
  * @return {object} 409 - Profil utilisateur introuvable
  * @return {object} 500 - Erreur serveur
  *
  */
-routes.post("/profilUtilisateur", (req, res) => {
+routes.post("/profilutilisateur", (req, res) => {
   return controllerUtilisateur.profilUtilisateur(req, res);
+});
+//Envoyer la position
+/**
+ * PUT /api/utilisateur/enovyerLocalisation
+ * @summary Envoyer position utilisateur
+ * @tags Utilisateur
+ * @param {string} code_utilisateur.path.required - Code de l'utilisateur qui envoi sa position
+ * @param {number} latitude.path.required - Latitude de la position
+ * @param {number} longitude.path.required  - Longitude de la position
+ * @return {object} 200 - Position envoyé avec succès
+ * @return {object} 400 - Impossible d'envoyer la position
+ * @return {object} 500 - Erreur server
+ */
+routes.put("/enovyerLocalisation", (req, res) => {
+  return controllerUtilisateur.envoyerLocalisation(req, res);
 });
 //Récupérer mot de passe
 /**
  * POST /api/utilisateur/recoverpassword
  * @summary Récupérer le mot passe
  * @tags Utilisateur
- * @param {string} request.body.required -Numéro envoyer pour vérifier qui récupère le mot de passe
+ * @param {string} numeros_utilisateur.required -Numéro envoyer pour vérifier qui récupère le mot de passe
  * @return {object} 201 - Numéros vérifié avec succès
  * @return {object} 400 - Données invalides
  * @return {object} 409 - Utilisateur introuvable
