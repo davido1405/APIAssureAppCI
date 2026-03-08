@@ -38,7 +38,38 @@ class Pharmacie {
       }
       //Récupérer maintenant le profil de la pharmacie
       const requete2 = await connexion.query(
-        "SELECT p.code_pharmacie,p.nom_pharmacie,p.photo_pharmacie,p.numeros_pharmacie,p.horraires_ouverture,p.email_pharmacie, a.longitude,a.latitude,a.adresse_fournit,v.nom_ville,s.libelle_statut as statut_pharmacie FROM pharmacie as p INNER JOIN adresse_pharmacie as a ON a.code_pharmacie=p.code_pharmacie INNER JOIN villes as v ON v.id_ville=a.id_ville INNER JOIN statut as s ON s.id_statut=p.id_statut WHERE p.code_pharmacie=?",
+        `SELECT 
+  p.code_pharmacie,
+  p.nom_pharmacie,
+  p.photo_pharmacie,
+  p.numeros_pharmacie,
+  p.horraires_ouverture,
+  p.email_pharmacie,
+  a.longitude,
+  a.latitude,
+  a.adresse_fournit,
+  v.nom_ville,
+  s.libelle_statut,
+  GROUP_CONCAT(ass.nom_assurance SEPARATOR ', ') as assurances_acceptees
+FROM pharmacie as p 
+INNER JOIN adresse_pharmacie as a ON a.code_pharmacie = p.code_pharmacie 
+INNER JOIN villes as v ON v.id_ville = a.id_ville 
+INNER JOIN statut as s ON s.id_statut = p.id_statut
+LEFT JOIN pharmacie_assurance as pa ON pa.code_pharmacie = p.code_pharmacie
+LEFT JOIN assurances as ass ON ass.id_assurance = pa.id_assurance
+WHERE p.code_pharmacie = ?
+GROUP BY 
+  p.code_pharmacie,
+  p.nom_pharmacie,
+  p.photo_pharmacie,
+  p.numeros_pharmacie,
+  p.horraires_ouverture,
+  p.email_pharmacie,
+  a.longitude,
+  a.latitude,
+  a.adresse_fournit,
+  v.nom_ville,
+  s.libelle_statut`,
         [code_pharma],
       );
       const profilPharma = requete2[0][0];
@@ -203,6 +234,7 @@ GROUP BY p.code_pharmacie`,
         p.photo_pharmacie,
         p.numeros_pharmacie,
         p.email_pharmacie,
+        p.horraires_ouverture,
         a.longitude,
         a.latitude,
         a.adresse_fournit,
@@ -277,21 +309,35 @@ GROUP BY p.code_pharmacie`,
       connexion.release();
     }
   }
-  //Ajouter une pharmacie
   static async ajouterPharmacie(
     code_gerant,
     nom_pharmacie,
     photo_pharmacie,
     numero_pharmacie,
     horraires_ouverture,
-    latitudePharmacie,
-    longitudePharmacie,
+    latitude, // ✅ Paramètre renommé (était latitudePharmacie)
+    longitude, // ✅ Paramètre renommé (était longitudePharmacie)
     ville_pharmacie,
     adresse_fournit,
     email_pharmacie,
     liste_assurance_accepte,
   ) {
     const connexion = await dataBase.getConnection();
+
+    console.log("=== MODÈLE: PARAMÈTRES REÇUS ===");
+    console.log("code_gerant:", code_gerant);
+    console.log("nom_pharmacie:", nom_pharmacie);
+    console.log("photo_pharmacie:", photo_pharmacie);
+    console.log("numero_pharmacie:", numero_pharmacie);
+    console.log("horraires_ouverture:", horraires_ouverture);
+    console.log("latitude:", latitude, "| Type:", typeof latitude);
+    console.log("longitude:", longitude, "| Type:", typeof longitude);
+    console.log("ville_pharmacie:", ville_pharmacie);
+    console.log("adresse_fournit:", adresse_fournit);
+    console.log("email_pharmacie:", email_pharmacie);
+    console.log("liste_assurance_accepte:", liste_assurance_accepte);
+
+    // ✅ Validation corrigée (accepte 0 pour latitude/longitude)
     if (
       !(
         code_gerant &&
@@ -299,21 +345,50 @@ GROUP BY p.code_pharmacie`,
         photo_pharmacie &&
         numero_pharmacie &&
         horraires_ouverture &&
-        latitudePharmacie &&
-        longitudePharmacie &&
+        latitude !== undefined && // ✅ Accepte 0
+        longitude !== undefined && // ✅ Accepte 0
         ville_pharmacie &&
         email_pharmacie &&
         adresse_fournit &&
         Array.isArray(liste_assurance_accepte)
       )
     ) {
+      console.log("❌ VALIDATION ÉCHOUÉE");
+
+      // Debug: afficher les champs en échec
+      const checks = {
+        code_gerant: !!code_gerant,
+        nom_pharmacie: !!nom_pharmacie,
+        photo_pharmacie: !!photo_pharmacie,
+        numero_pharmacie: !!numero_pharmacie,
+        horraires_ouverture: !!horraires_ouverture,
+        latitude: latitude !== undefined,
+        longitude: longitude !== undefined,
+        ville_pharmacie: !!ville_pharmacie,
+        email_pharmacie: !!email_pharmacie,
+        adresse_fournit: !!adresse_fournit,
+        liste_assurance_accepte: Array.isArray(liste_assurance_accepte),
+      };
+
+      console.log("Validation détaillée:", checks);
+
+      const failedFields = Object.entries(checks)
+        .filter(([key, value]) => !value)
+        .map(([key]) => key);
+
+      console.log("Champs en échec:", failedFields);
+
+      connexion.release();
       return {
         success: false,
         message: "Veuillez vérifier tous les champs",
+        failed_fields: failedFields,
       };
     }
 
-    // Validation email
+    console.log("✅ VALIDATION RÉUSSIE");
+
+    // ✅ Validation email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email_pharmacie)) {
       connexion.release();
@@ -323,14 +398,14 @@ GROUP BY p.code_pharmacie`,
       };
     }
 
-    // Validation coordonnées GPS
+    // ✅ Validation coordonnées GPS
     if (
-      isNaN(latitudePharmacie) ||
-      isNaN(longitudePharmacie) ||
-      latitudePharmacie < -90 ||
-      latitudePharmacie > 90 ||
-      longitudePharmacie < -180 ||
-      longitudePharmacie > 180
+      isNaN(latitude) ||
+      isNaN(longitude) ||
+      latitude < -90 ||
+      latitude > 90 ||
+      longitude < -180 ||
+      longitude > 180
     ) {
       connexion.release();
       return {
@@ -340,23 +415,28 @@ GROUP BY p.code_pharmacie`,
     }
 
     await connexion.beginTransaction();
+
     try {
-      //Vérifier l'existance de l'utilisateur gérant
-      const requete1 = await connexion.query(
-        "SELECT * from utilisateurs WHERE code_utilisateur=?",
+      console.log("✅ Transaction démarrée");
+
+      // Vérifier l'existence de l'utilisateur gérant
+      const [rowsUtilisateur] = await connexion.query(
+        "SELECT * FROM utilisateurs WHERE code_utilisateur = ?",
         [code_gerant],
       );
-      const existe = requete1[0][0];
-      if (!existe) {
+
+      if (rowsUtilisateur.length === 0) {
+        await connexion.rollback();
+        connexion.release();
         return {
           success: false,
           message: "Utilisateur introuvable. Veuillez d'abord vous inscrire.",
         };
       }
 
-      const utilisateur = requete1[0];
+      console.log("✅ Utilisateur trouvé");
 
-      // Vérifier que l'utilisateur n'est pas déjà gérant d'une autre pharmacie
+      // Vérifier que l'utilisateur n'est pas déjà gérant
       const [rowsGerant] = await connexion.query(
         "SELECT * FROM utilisateur_gerant WHERE code_utilisateur = ? AND id_statut = 1",
         [code_gerant],
@@ -364,13 +444,14 @@ GROUP BY p.code_pharmacie`,
 
       if (rowsGerant.length > 0) {
         await connexion.rollback();
+        connexion.release();
         return {
           success: false,
           message: "Vous êtes déjà gérant d'une pharmacie active.",
         };
       }
 
-      // ====== 2. VÉRIFIER DOUBLON NOM PHARMACIE ======
+      // Vérifier doublon nom pharmacie
       const [rowsDoublon] = await connexion.query(
         "SELECT * FROM pharmacie WHERE nom_pharmacie = ? AND id_statut = 1",
         [nom_pharmacie],
@@ -378,110 +459,523 @@ GROUP BY p.code_pharmacie`,
 
       if (rowsDoublon.length > 0) {
         await connexion.rollback();
+        connexion.release();
         return {
           success: false,
           message: "Une pharmacie avec ce nom existe déjà.",
         };
       }
 
+      console.log("✅ Vérifications passées");
+
+      // Générer le code pharmacie
       const code_pharma = this.genererCodePharmacie();
-      //Enregistrement dans pharmacies
-      const requete2 = await connexion.query(
-        "INSERT INTO pharmacie(code_pharmacie,nom_pharmacie,photo_pharmacie,numeros_pharmacie,horraires_ouverture,id_statut,email_pharmacie) VALUES(?,?,?,?,?,?,?)",
+      console.log("✅ Code pharmacie généré:", code_pharma);
+
+      // Enregistrement dans pharmacies
+      await connexion.query(
+        `INSERT INTO pharmacie 
+      (code_pharmacie, nom_pharmacie, photo_pharmacie, numeros_pharmacie, 
+       horraires_ouverture, id_statut, email_pharmacie) 
+      VALUES (?, ?, ?, ?, ?, 1, ?)`,
         [
           code_pharma,
           nom_pharmacie,
           photo_pharmacie,
           numero_pharmacie,
           horraires_ouverture,
-          1, //Actif
           email_pharmacie,
         ],
       );
-      //Récupérer l'id_ville avant
+
+      console.log("✅ Pharmacie insérée");
+
+      // Récupérer l'id_ville
       const [verifVille] = await connexion.query(
-        "SELECT id_ville FROM villes where nom_ville=?",
+        "SELECT id_ville FROM villes WHERE nom_ville = ?",
         [ville_pharmacie],
       );
+
       let id_ville;
       if (verifVille.length > 0) {
         id_ville = verifVille[0].id_ville;
+        console.log("✅ Ville trouvée:", id_ville);
       } else {
         const [ajouterVille] = await connexion.query(
-          "INSERT INTO villes(nom_ville)VALUES(?)",
+          "INSERT INTO villes (nom_ville) VALUES (?)",
           [ville_pharmacie],
         );
         id_ville = ajouterVille.insertId;
+        console.log("✅ Ville créée:", id_ville);
       }
-      //Insérer dans adresse_pharmacie
-      const requete3 = await connexion.query(
-        "INSERT INTO adresse_pharmacie (code_pharmacie,latitude,longitude,adresse_fournit,id_ville) VALUES (?,?,?,?,?)",
-        [
-          code_pharma,
-          latitudePharmacie,
-          longitudePharmacie,
-          adresse_fournit,
-          id_ville,
-        ],
+
+      // Insérer dans adresse_pharmacie
+      const [resultAdresse] = await connexion.query(
+        `INSERT INTO adresse_pharmacie 
+      (code_pharmacie, latitude, longitude, adresse_fournit, id_ville) 
+      VALUES (?, ?, ?, ?, ?)`,
+        [code_pharma, latitude, longitude, adresse_fournit, id_ville],
       );
 
-      //Mettre à jour l'id_adresse dans pharmacie
-      const mJAdressePharmacie = await connexion.query(
-        "UPDATE pharmacie set id_adresse=? WHERE code_pharmacie=?",
-        [requete3[0].insertId, code_pharma],
+      console.log("✅ Adresse insérée");
+
+      // Mettre à jour l'id_adresse dans pharmacie
+      await connexion.query(
+        "UPDATE pharmacie SET id_adresse = ? WHERE code_pharmacie = ?",
+        [resultAdresse.insertId, code_pharma],
       );
 
-      //Ajouter les assurances acceptées
-      for (const assurance of liste_assurance_accepte) {
-        //Vérifier si l'assurance est déjà dans le système
-        const requete4 = await connexion.query(
-          "SELECT id_assurance FROM assurances WHERE nom_assurance=?",
-          [assurance],
+      console.log("✅ id_adresse mise à jour");
+
+      // Ajouter les assurances acceptées
+      for (const nomAssurance of liste_assurance_accepte) {
+        const [rowsAssurance] = await connexion.query(
+          "SELECT id_assurance FROM assurances WHERE nom_assurance = ?",
+          [nomAssurance],
         );
-        let id_assurance = requete4[0][0]?.id_assurance;
-        if (!id_assurance) {
-          const requete5 = await connexion.query(
-            "INSERT INTO assurances(nom_assurance) VALUES(?)",
-            [assurance],
+
+        let id_assurance;
+        if (rowsAssurance.length > 0) {
+          id_assurance = rowsAssurance[0].id_assurance;
+        } else {
+          const [resultAssurance] = await connexion.query(
+            "INSERT INTO assurances (nom_assurance, id_statut) VALUES (?, 1)",
+            [nomAssurance],
           );
-          id_assurance = requete5[0].insertId;
+          id_assurance = resultAssurance.insertId;
+          console.log("✅ Assurance créée:", nomAssurance);
         }
 
-        //Enregistrer la liste des assurances acceptées par la pharmacie
-        const requete6 = await connexion.query(
-          "INSERT INTO pharmacie_assurance(code_pharmacie,id_assurance) VALUES(?,?)",
+        await connexion.query(
+          "INSERT INTO pharmacie_assurance (code_pharmacie, id_assurance) VALUES (?, ?)",
           [code_pharma, id_assurance],
         );
       }
 
-      //Enregistrer le gérant de la pharmacie
-      const requete7 = await connexion.query(
-        "INSERT INTO utilisateur_gerant(code_utilisateur,code_pharmacie,id_statut) VALUES(?,?,?)",
-        [code_gerant, code_pharma, 1],
+      console.log("✅ Assurances ajoutées:", liste_assurance_accepte.length);
+
+      // Enregistrer le gérant de la pharmacie
+      await connexion.query(
+        "INSERT INTO utilisateur_gerant (code_utilisateur, code_pharmacie, id_statut) VALUES (?, ?, 1)",
+        [code_gerant, code_pharma],
       );
 
-      //Mettre à jour le type utilisateur
-      const requete8 = await connexion.query(
-        "UPDATE utilisateurs SET id_type_utilisateur=? WHERE code_utilisateur=?",
-        [3, code_gerant],
+      console.log("✅ Gérant enregistré");
+
+      // Mettre à jour le type utilisateur
+      await connexion.query(
+        "UPDATE utilisateurs SET id_type_utilisateur = 3 WHERE code_utilisateur = ?",
+        [code_gerant],
       );
 
-      //Valider toutes les opérations
+      console.log("✅ Type utilisateur mis à jour");
+
+      // Valider toutes les opérations
       await connexion.commit();
+      console.log("✅ Transaction validée");
 
       return {
         success: true,
-        message: "Votre pharmacie a été enregistré avec succès !",
+        message: "Votre pharmacie a été enregistrée avec succès !",
+        data: {
+          code_pharmacie: code_pharma,
+          nom_pharmacie: nom_pharmacie,
+          photo_url: photo_pharmacie,
+        },
       };
     } catch (error) {
-      console.log(error);
       await connexion.rollback();
+      console.error("❌ Erreur transaction:", error);
+      console.error("Stack:", error.stack);
       return {
         success: false,
         message: "Impossible d'enregistrer cette pharmacie",
+        error: error.message,
       };
     } finally {
       connexion.release();
+      console.log("✅ Connexion relâchée");
+    }
+  }
+  //Modifier infos pharmacie
+
+  static async modifierPharmacie(
+    code_pharmacie,
+    nom_pharmacie,
+    photo_pharmacie,
+    numero_pharmacie,
+    horraires_ouverture,
+    latitude,
+    longitude,
+    ville_pharmacie,
+    adresse_fournit,
+    email_pharmacie,
+    liste_assurance_accepte,
+  ) {
+    const connexion = await dataBase.getConnection();
+
+    console.log("=== MODÈLE: MODIFICATION PHARMACIE ===");
+    console.log("code_pharmacie:", code_pharmacie);
+    console.log("nom_pharmacie:", nom_pharmacie);
+    console.log("photo_pharmacie:", photo_pharmacie);
+    console.log("numero_pharmacie:", numero_pharmacie);
+    console.log("horraires_ouverture:", horraires_ouverture);
+    console.log("latitude:", latitude, "| Type:", typeof latitude);
+    console.log("longitude:", longitude, "| Type:", typeof longitude);
+    console.log("ville_pharmacie:", ville_pharmacie);
+    console.log("adresse_fournit:", adresse_fournit);
+    console.log("email_pharmacie:", email_pharmacie);
+    console.log("liste_assurance_accepte:", liste_assurance_accepte);
+
+    // ✅ Validation du code pharmacie (obligatoire)
+    if (!code_pharmacie) {
+      connexion.release();
+      return {
+        success: false,
+        message: "Code pharmacie manquant",
+      };
+    }
+
+    // ✅ Validation email si fourni
+    if (email_pharmacie) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email_pharmacie)) {
+        connexion.release();
+        return {
+          success: false,
+          message: "Format d'email invalide",
+        };
+      }
+    }
+
+    // ✅ Validation coordonnées GPS si fournies
+    if (latitude !== undefined && longitude !== undefined) {
+      if (
+        isNaN(latitude) ||
+        isNaN(longitude) ||
+        latitude < -90 ||
+        latitude > 90 ||
+        longitude < -180 ||
+        longitude > 180
+      ) {
+        connexion.release();
+        return {
+          success: false,
+          message: "Coordonnées GPS invalides",
+        };
+      }
+    }
+
+    await connexion.beginTransaction();
+
+    try {
+      console.log("✅ Transaction démarrée");
+
+      // ✅ Vérifier que la pharmacie existe
+      const [rowsPharmacie] = await connexion.query(
+        "SELECT * FROM pharmacie WHERE code_pharmacie = ?",
+        [code_pharmacie],
+      );
+
+      if (rowsPharmacie.length === 0) {
+        await connexion.rollback();
+        connexion.release();
+        return {
+          success: false,
+          message: "Pharmacie introuvable",
+        };
+      }
+
+      console.log("✅ Pharmacie trouvée");
+
+      const pharmacieActuelle = rowsPharmacie[0];
+
+      // ✅ 1. MISE À JOUR TABLE PHARMACIE
+      const updateFieldsPharmacie = [];
+      const updateValuesPharmacie = [];
+
+      if (nom_pharmacie) {
+        // Vérifier doublon nom (sauf pour cette pharmacie)
+        const [rowsDoublon] = await connexion.query(
+          "SELECT * FROM pharmacie WHERE nom_pharmacie = ? AND code_pharmacie != ? AND id_statut = 1",
+          [nom_pharmacie, code_pharmacie],
+        );
+
+        if (rowsDoublon.length > 0) {
+          await connexion.rollback();
+          connexion.release();
+          return {
+            success: false,
+            message: "Une autre pharmacie avec ce nom existe déjà.",
+          };
+        }
+
+        updateFieldsPharmacie.push("nom_pharmacie = ?");
+        updateValuesPharmacie.push(nom_pharmacie);
+      }
+
+      if (photo_pharmacie) {
+        updateFieldsPharmacie.push("photo_pharmacie = ?");
+        updateValuesPharmacie.push(photo_pharmacie);
+      }
+
+      if (numero_pharmacie) {
+        updateFieldsPharmacie.push("numeros_pharmacie = ?");
+        updateValuesPharmacie.push(numero_pharmacie);
+      }
+
+      if (horraires_ouverture) {
+        updateFieldsPharmacie.push("horraires_ouverture = ?");
+        updateValuesPharmacie.push(horraires_ouverture);
+      }
+
+      if (email_pharmacie) {
+        updateFieldsPharmacie.push("email_pharmacie = ?");
+        updateValuesPharmacie.push(email_pharmacie);
+      }
+
+      // Mettre à jour la pharmacie si des champs ont changé
+      if (updateFieldsPharmacie.length > 0) {
+        updateValuesPharmacie.push(code_pharmacie);
+
+        const updateQueryPharmacie = `
+        UPDATE pharmacie 
+        SET ${updateFieldsPharmacie.join(", ")}
+        WHERE code_pharmacie = ?
+      `;
+
+        console.log("Update query pharmacie:", updateQueryPharmacie);
+        console.log("Values:", updateValuesPharmacie);
+
+        await connexion.query(updateQueryPharmacie, updateValuesPharmacie);
+        console.log("✅ Table pharmacie mise à jour");
+      }
+
+      // ✅ 2. MISE À JOUR ADRESSE
+      if (
+        adresse_fournit ||
+        ville_pharmacie ||
+        latitude !== undefined ||
+        longitude !== undefined
+      ) {
+        const id_adresse = pharmacieActuelle.id_adresse;
+
+        if (id_adresse) {
+          const updateFieldsAdresse = [];
+          const updateValuesAdresse = [];
+
+          if (adresse_fournit) {
+            updateFieldsAdresse.push("adresse_fournit = ?");
+            updateValuesAdresse.push(adresse_fournit);
+          }
+
+          if (latitude !== undefined) {
+            updateFieldsAdresse.push("latitude = ?");
+            updateValuesAdresse.push(latitude);
+          }
+
+          if (longitude !== undefined) {
+            updateFieldsAdresse.push("longitude = ?");
+            updateValuesAdresse.push(longitude);
+          }
+
+          if (ville_pharmacie) {
+            // Récupérer ou créer la ville
+            const [verifVille] = await connexion.query(
+              "SELECT id_ville FROM villes WHERE nom_ville = ?",
+              [ville_pharmacie],
+            );
+
+            let id_ville;
+            if (verifVille.length > 0) {
+              id_ville = verifVille[0].id_ville;
+              console.log("✅ Ville trouvée:", id_ville);
+            } else {
+              const [ajouterVille] = await connexion.query(
+                "INSERT INTO villes (nom_ville) VALUES (?)",
+                [ville_pharmacie],
+              );
+              id_ville = ajouterVille.insertId;
+              console.log("✅ Ville créée:", id_ville);
+            }
+
+            updateFieldsAdresse.push("id_ville = ?");
+            updateValuesAdresse.push(id_ville);
+          }
+
+          if (updateFieldsAdresse.length > 0) {
+            updateValuesAdresse.push(id_adresse);
+
+            const updateQueryAdresse = `
+            UPDATE adresse_pharmacie 
+            SET ${updateFieldsAdresse.join(", ")}
+            WHERE id_adresse = ?
+          `;
+
+            console.log("Update query adresse:", updateQueryAdresse);
+            console.log("Values:", updateValuesAdresse);
+
+            await connexion.query(updateQueryAdresse, updateValuesAdresse);
+            console.log("✅ Adresse mise à jour");
+          }
+        } else {
+          console.log("⚠️ Pas d'adresse existante");
+        }
+      }
+
+      // ✅ 3. MISE À JOUR ASSURANCES
+      if (liste_assurance_accepte && Array.isArray(liste_assurance_accepte)) {
+        console.log("=== MISE À JOUR ASSURANCES ===");
+
+        // Supprimer les anciennes associations
+        await connexion.query(
+          "DELETE FROM pharmacie_assurance WHERE code_pharmacie = ?",
+          [code_pharmacie],
+        );
+
+        console.log("✅ Anciennes assurances supprimées");
+
+        // Ajouter les nouvelles
+        for (const nomAssurance of liste_assurance_accepte) {
+          const [rowsAssurance] = await connexion.query(
+            "SELECT id_assurance FROM assurances WHERE nom_assurance = ?",
+            [nomAssurance],
+          );
+
+          let id_assurance;
+          if (rowsAssurance.length > 0) {
+            id_assurance = rowsAssurance[0].id_assurance;
+          } else {
+            const [resultAssurance] = await connexion.query(
+              "INSERT INTO assurances (nom_assurance, id_statut) VALUES (?, 1)",
+              [nomAssurance],
+            );
+            id_assurance = resultAssurance.insertId;
+            console.log("✅ Assurance créée:", nomAssurance);
+          }
+
+          await connexion.query(
+            "INSERT INTO pharmacie_assurance (code_pharmacie, id_assurance) VALUES (?, ?)",
+            [code_pharmacie, id_assurance],
+          );
+        }
+
+        console.log(
+          "✅ Assurances mises à jour:",
+          liste_assurance_accepte.length,
+        );
+      }
+
+      // ✅ Valider la transaction
+      await connexion.commit();
+      console.log("✅ Transaction validée");
+
+      return {
+        success: true,
+        message: "Pharmacie modifiée avec succès !",
+        data: {
+          code_pharmacie: code_pharmacie,
+          nom_pharmacie: nom_pharmacie || pharmacieActuelle.nom_pharmacie,
+          photo_url: photo_pharmacie || pharmacieActuelle.photo_pharmacie,
+        },
+      };
+    } catch (error) {
+      await connexion.rollback();
+      console.error("❌ Erreur transaction:", error);
+      console.error("Stack:", error.stack);
+      return {
+        success: false,
+        message: "Impossible de modifier cette pharmacie",
+        error: error.message,
+      };
+    } finally {
+      connexion.release();
+      console.log("✅ Connexion relâchée");
+    }
+  }
+
+  static async recupererStatistiques(code_pharmacie) {
+    const connexion = dataBase.getConnection();
+
+    try {
+      //Vérifier l'existance de la pharmacie
+      const req1 = (await connexion).query(
+        "SELECT code_pharmacie FROM pharmacie WHERE code_pharmacie=?",
+        [code_pharmacie],
+      );
+      const pharma = req1[0][0].code_pharmacie;
+
+      if (!pharma) {
+        return {
+          success: false,
+          message: "Aucune pharmacie ne correspond à ce code",
+        };
+      }
+
+      // 1. Statistiques de base
+      const [statsBase] = await connexion.query(
+        `
+      SELECT 
+        (SELECT COUNT(*) FROM vues_pharmacie WHERE code_pharmacie = ?) as total_vues,
+        (SELECT COUNT(*) FROM newsletter WHERE code_pharmacie = ? AND id_statut = 1) as total_abonnes,
+        (SELECT COUNT(*) FROM annonce WHERE code_pharmacie = ? AND id_statut = 1) as annonces_actives,
+        (SELECT COUNT(*) FROM newsletter WHERE code_pharmacie = ?) as newsletters_envoyees
+    `,
+        [code_pharmacie, code_pharmacie, code_pharmacie, code_pharmacie],
+      );
+
+      // 2. Vues par jour (7 derniers jours)
+      const [vuesParJour] = await connexion.query(
+        `
+      SELECT 
+        DATE(date_vue) as date,
+        COUNT(*) as nb_vues
+      FROM vues_pharmacie
+      WHERE code_pharmacie = ?
+        AND date_vue >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+      GROUP BY DATE(date_vue)
+      ORDER BY date
+    `,
+        [code_pharmacie],
+      );
+
+      // 3. Évolution abonnés (6 derniers mois)
+      const [evolutionAbonnes] = await connexion.query(
+        `
+      SELECT 
+        DATE_FORMAT(date_abonnement, '%Y-%m') as mois,
+        COUNT(*) as nouveaux_abonnes
+      FROM newsletter
+      WHERE code_pharmacie = ?
+        AND date_abonnement >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+      GROUP BY DATE_FORMAT(date_abonnement, '%Y-%m')
+      ORDER BY mois
+    `,
+        [code_pharmacie],
+      );
+
+      // 5. Assurances acceptées
+      const [assurances] = await connexion.query(
+        `
+      SELECT 
+        ass.nom_assurance,
+        ass.id_assurance
+      FROM pharmacie_assurance pa
+      INNER JOIN assurances ass ON pa.id_assurance = ass.id_assurance
+      WHERE pa.code_pharmacie = ?
+    `,
+        [code_pharmacie],
+      );
+
+      return {
+        stats_base: statsBase[0],
+        vues_par_jour: vuesParJour,
+        evolution_abonnes: evolutionAbonnes,
+        top_annonces: topAnnonces,
+        assurances: assurances,
+      };
+    } catch (error) {
+      console.log(error);
     }
   }
 }

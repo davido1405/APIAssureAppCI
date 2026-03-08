@@ -1,6 +1,6 @@
 const express = require("express");
 const controllerPharmacie = require("../controllers/controller.pharmacie");
-
+const upload = require("../middleware/upload");
 const routes = express.Router();
 
 //Récupérer le profil de la pharmacie
@@ -39,17 +39,17 @@ routes.post("/ajouterassurance", (req, res) => {
 //Enregistrer une pharmacie
 /**
  * @typedef {object} infosAjouterPharmacie -Informations nécéssaire à ajouter une pharmacie
- * @property {string} code_gerant.body.required - Code de l'utilisateur qui gère la pharmacie
- * @property {string} nom_pharmacie.body.required - Nom de la pharmacie à enregistrer
- * @property {string} photo_pharmacie.body.required - Photo de la pharmacie à enregistrer
- * @property {string} numero_pharmacie.body.required - Numéros de la pharmacie à enregistrer
- * @property {string} horraires_ouverture.body.required - Les horraires d'ouverture de la pharmacie
- * @property {string} email_pharmacie.body.required - Email de la pharmacie à enregistrer
- * @property {number} latitudePharmacie.body.required - latitude de la position de la pharmacie à enregistrer
- * @property {number} longitudePharmacie.body.required - longitude de la position de la pharmacie à enregistrer
- * @property {string} ville_pharmacie.body.required - La ville où la pharmacie exerce
- * @property {string} adresse_fournit.body.required - Adresse fournit par la pharmacie
- * @property {Array[]} liste_assurance_accepte.body.required - Liste des assurances acceptées
+ * @property {string} code_gerant.required - Code de l'utilisateur qui gère la pharmacie - application/x-www-form-urlencoded
+ * @property {string} nom_pharmacie.required - Nom de la pharmacie à enregistrer - application/x-www-form-urlencoded
+ * @property {string} numero_pharmacie.required - Numéros de la pharmacie à enregistrer - application/x-www-form-urlencoded
+ * @property {string} horraires_ouverture.required - Les horaires d'ouverture de la pharmacie - application/x-www-form-urlencoded
+ * @property {string} email_pharmacie.required - Email de la pharmacie à enregistrer - application/x-www-form-urlencoded
+ * @property {number} latitudePharmacie.required - Latitude de la position de la pharmacie - application/x-www-form-urlencoded
+ * @property {number} longitudePharmacie.required - Longitude de la position de la pharmacie - application/x-www-form-urlencoded
+ * @property {string} ville_pharmacie.required - La ville où la pharmacie exerce - application/x-www-form-urlencoded
+ * @property {string} adresse_fournit.required - Adresse fournie par la pharmacie - application/x-www-form-urlencoded
+ * @property {string} liste_assurance_accepte.required - Liste des assurances acceptées (JSON array) - application/x-www-form-urlencoded - eg: ["NSIA", "AXA"]
+ * @property {string} photo.required - Photo de la pharmacie (fichier image) - multipart/form-data - format: binary
  */
 /**
  * POST /api/pharmacie/ajouterPharmacie
@@ -60,17 +60,46 @@ routes.post("/ajouterassurance", (req, res) => {
  * @return {object} 400 - Impossible d'enregistrer la pharmacie
  * @return {object} 500 - Erreur serveur
  */
-routes.post("/ajouterPharmacie", (req, res) => {
+routes.post("/ajouterPharmacie", upload.single("photo"), (req, res) => {
   return controllerPharmacie.ajouterPharmacie(req, res);
 });
+
+//Modifier les informations d'une pharmacie
+/**
+ * @typedef {object} infosMajPharmacie -Informations nécéssaire à ajouter une pharmacie
+ * @property {string} code_gerant.required - Code de l'utilisateur qui gère la pharmacie - application/x-www-form-urlencoded
+ * @property {string} nom_pharmacie - Nom de la pharmacie à enregistrer - application/x-www-form-urlencoded
+ * @property {string} numero_pharmacie - Numéros de la pharmacie à enregistrer - application/x-www-form-urlencoded
+ * @property {string} horraires_ouverture - Les horaires d'ouverture de la pharmacie - application/x-www-form-urlencoded
+ * @property {string} email_pharmacie - Email de la pharmacie à enregistrer - application/x-www-form-urlencoded
+ * @property {number} latitudePharmacie - Latitude de la position de la pharmacie - application/x-www-form-urlencoded
+ * @property {number} longitudePharmacie - Longitude de la position de la pharmacie - application/x-www-form-urlencoded
+ * @property {string} ville_pharmacie - La ville où la pharmacie exerce - application/x-www-form-urlencoded
+ * @property {string} adresse_fournit - Adresse fournie par la pharmacie - application/x-www-form-urlencoded
+ * @property {string} liste_assurance_accepte - Liste des assurances acceptées (JSON array) - application/x-www-form-urlencoded - eg: ["NSIA", "AXA"]
+ * @property {string} photo - Photo de la pharmacie (fichier image) - multipart/form-data - format: binary
+ */
+/**
+ * PUT /api/pharmacie/modifierpharmacie
+ * @summary Mettre à jour les informations d'une pharmacie
+ * @tags Pharmacie
+ * @param {infosMajPharmacie} request.body - Informations à mettre à jour en BD
+ * @return {object} 201 - Pharmacie enregistrée avec succès
+ * @return {object} 400 - Impossible d'enregistrer la pharmacie
+ * @return {object} 500 - Erreur serveur
+ */
+routes.put(
+  "/modifierpharmacie",
+  upload.single("photo"), // ✅ Middleware AVANT le controller
+  controllerPharmacie.modifierPharmacie,
+);
 
 //Rechercher une pharmacie
 /**
  * @typedef {object} infosRecherchePharmacie
- * @property {string} nom_assurance.required -Nom de l'assurance recherchée
+ * @property {string} terme_saisi.required -Nom de l'assurance recherchée
  * @property {number} longitude -Longitude de la position de l'utilisateur
  * @property {number} latitude -Latitude de la position de l'utilisateur
- * @property {string} adresse_utilisateur.required -Adresse fourni par l'utilisateur à l'inscription
  */
 /**
  * GET /api/pharmacie/rechercher
@@ -82,7 +111,20 @@ routes.post("/ajouterPharmacie", (req, res) => {
  * @return {object} 500 - Erreur serveur
  */
 routes.get("/rechercher", (req, res) => {
-  return controllerPharmacie.toutePharmacies(req, res);
+  return controllerPharmacie.rechercherPharmacie(req, res);
+});
+
+/**
+ * GET /api/pharmacie/statistiques
+ * @summary Récupérer toutes les statistiques de la pharmacie
+ * @tags Pharmacie
+ * @param {string} code_pharmacie.path.required - Le code de la pharmacie dont on veut récupérer les statistiques
+ * @return {object} 200 - Statistiques récupérées avec succès
+ * @return {object} 400 - Donnée introuvable pour cette pharmacie
+ * @return {object} 500 - Erreur server
+ */
+routes.get("/statistiques", (req, res) => {
+  return controllerPharmacie.recupererStatistiques(req, res);
 });
 
 //toute les pharmacies
