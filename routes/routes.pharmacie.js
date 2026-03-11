@@ -2,6 +2,34 @@ const express = require("express");
 const controllerPharmacie = require("../controllers/controller.pharmacie");
 const upload = require("../middleware/upload");
 const routes = express.Router();
+const { verifierAccesFonctionnalite } = require("../middleware/verifierAcces");
+
+// Route protégée - Envoi de newsletter (Standard/Premium uniquement)
+routes.post(
+  "/newsletter/envoyer",
+  verifierAccesFonctionnalite("NEWSLETTER"),
+  (req, res) => {
+    return controllerPharmacie.envoyerNewsletter(req, res);
+  },
+);
+
+// Route protégée - Créer une annonce
+routes.post(
+  "/annonce/creer",
+  verifierAccesFonctionnalite("ANNONCES"),
+  (req, res) => {
+    return controllerPharmacie.creerAnnonce(req, res);
+  },
+);
+
+// Route protégée - Statistiques avancées (Premium uniquement)
+routes.get(
+  "/statistiques/avancees/:code_pharmacie",
+  verifierAccesFonctionnalite("STATS_AVANCEES"),
+  (req, res) => {
+    return controllerPharmacie.statistiquesAvancees(req, res);
+  },
+);
 
 //Récupérer le profil de la pharmacie
 /**
@@ -92,6 +120,21 @@ routes.put(
   "/modifierpharmacie",
   upload.single("photo"), // ✅ Middleware AVANT le controller
   controllerPharmacie.modifierPharmacie,
+);
+
+/**
+ * PUT /api/pharmacie/modifierstatutgarde
+ * @summary Mettre à jour les informations d'une pharmacie
+ * @tags Pharmacie
+ * @param {string} code_pharmacie.required - Informations à mettre à jour en BD
+ * @param {string} est_de_garde.required - Informations à mettre à jour en BD
+ * @return {object} 201 - Statut de garde mis à jour avec succès
+ * @return {object} 400 - Impossible d'enregistrer la pharmacie
+ * @return {object} 500 - Erreur serveur
+ */
+routes.put(
+  "/modifierstatutgarde", // ✅ Middleware AVANT le controller
+  controllerPharmacie.mettreAJourStatutGarde,
 );
 
 //Rechercher une pharmacie

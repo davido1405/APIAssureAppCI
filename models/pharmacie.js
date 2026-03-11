@@ -158,6 +158,7 @@ GROUP BY
   p.numeros_pharmacie,
   p.email_pharmacie,
   p.horraires_ouverture,
+  p.est_de_garde as statut_garde
   a.longitude,
   a.latitude,
   a.adresse_fournit,
@@ -235,6 +236,7 @@ GROUP BY p.code_pharmacie`,
         p.numeros_pharmacie,
         p.email_pharmacie,
         p.horraires_ouverture,
+  p.est_de_garde as statut_garde
         a.longitude,
         a.latitude,
         a.adresse_fournit,
@@ -976,6 +978,55 @@ GROUP BY p.code_pharmacie`,
       };
     } catch (error) {
       console.log(error);
+    }
+  }
+
+  static async mettreAJourStatutGarde(code_pharmacie, est_de_garde) {
+    const connexion = await dataBase.getConnection();
+
+    try {
+      console.log("=== MISE À JOUR STATUT DE GARDE ===");
+      console.log("Code pharmacie:", code_pharmacie);
+      console.log(
+        "Nouveau statut:",
+        est_de_garde ? "DE GARDE" : "PAS DE GARDE",
+      );
+
+      // ✅ Simple UPDATE - C'est tout !
+      const [result] = await connexion.query(
+        `
+      UPDATE pharmacie 
+      SET est_de_garde = ?,
+          derniere_maj_garde = NOW()
+      WHERE code_pharmacie = ?
+    `,
+        [est_de_garde, code_pharmacie],
+      );
+
+      if (result.affectedRows === 0) {
+        return {
+          success: false,
+          message: "Pharmacie introuvable",
+        };
+      }
+
+      return {
+        success: true,
+        message: est_de_garde
+          ? "Pharmacie marquée comme étant de garde"
+          : "Pharmacie marquée comme n'étant plus de garde",
+        est_de_garde: est_de_garde,
+        derniere_maj: new Date(),
+      };
+    } catch (error) {
+      console.error("❌ Erreur mettreAJourStatutGarde:", error);
+      return {
+        success: false,
+        message: "Erreur lors de la mise à jour",
+        error: error.message,
+      };
+    } finally {
+      connexion.release();
     }
   }
 }

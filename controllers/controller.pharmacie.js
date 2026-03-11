@@ -339,5 +339,38 @@ class controllerPharmacie {
       });
     }
   }
+
+  //Modifier statut de garde
+
+  static async mettreAJourStatutGarde(req, res) {
+    try {
+      const { code_pharmacie, est_de_garde } = req.body;
+
+      // Validation
+      if (!code_pharmacie || est_de_garde === undefined) {
+        return res.status(400).json({
+          success: false,
+          message: "Code pharmacie et statut de garde requis",
+        });
+      }
+
+      // Convertir en booléen
+      const statut = est_de_garde === "DE GARDE" ? 1 : 0;
+
+      // ✅ Appel simple au modèle
+      const resultat = await modelPharmacie.mettreAJourStatutGarde(
+        code_pharmacie,
+        statut,
+      );
+
+      return res.status(resultat.success ? 200 : 400).json(resultat);
+    } catch (error) {
+      console.error("❌ Erreur controller:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Erreur serveur",
+      });
+    }
+  }
 }
 module.exports = controllerPharmacie;

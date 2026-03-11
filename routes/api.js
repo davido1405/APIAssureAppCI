@@ -10,7 +10,8 @@ router.use("/utilisateur", require("./routes.utilisateur"));
 
 router.use("/annonces", require("./routes.annonces"));
 
-router.use("/abonnementPharmacie", require("./routes.abonnementPharmacie"));
+router.use("/abonnements", require("./routes.abonnements"));
 
 router.use("/newsLetters", require("./routes.newsLetters"));
+
 module.exports = router;
