@@ -3,6 +3,7 @@ const express = require("express");
 const routes = express.Router();
 
 const controllerUtilisateur = require("../controllers/controller.utilisateurs");
+const { route } = require("./routes.annonces");
 
 /**
  * @typedef {object} informationInscription
@@ -125,4 +126,16 @@ routes.post("/ajouterAssurance", (req, res) => {
   });
 });
 
+//Enovyer FCM_Token
+/**
+ * PUT /api/utilisateur/envoyerFCMT
+ * @summary Envoyer le FCM token pour les notifications push
+ * @tags Utilisateur
+ * @param {string} fcm_token.request.required - Le FCM Token de l'utilisateur
+ * @param {string} code_utilisateur.request.required - Code de l'utilisateur dont on veut mettre à jour le FCM token
+ * @return {object} 201 - FCM Token envoyé avec succès
+ * @return {object} 400 - Impossible de trouver l'utilisateur
+ * @return {object} 500 - Erreur Serveur
+ */
+routes.put("/envoyerFCMT", controllerUtilisateur.envoyerFCMToken);
 module.exports = routes;

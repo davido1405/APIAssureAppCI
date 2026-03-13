@@ -1,5 +1,6 @@
 const express = require("express");
 const modelUtilisateur = require("../models/utilisateur");
+const { messaging } = require("firebase-admin");
 
 class controllerUtilisateur {
   //Inscription utilisateur
@@ -83,6 +84,36 @@ class controllerUtilisateur {
       return res.status(500).json({
         success: false,
         message: "Erreur server",
+      });
+    }
+  }
+
+  //Envoyer token
+  static async envoyerFCMToken(req, res) {
+    const { fcm_token, code_utilisateur } = req.body;
+
+    if (!(fcm_token && code_utilisateur)) {
+      return res.status(400).json({
+        success: false,
+        message: "Paramètre manquant. Veuillez vérifier tous les champs",
+      });
+    }
+    try {
+      const resultat = await modelUtilisateur.envoyerFCMToken(
+        code_utilisateur,
+        fcm_token,
+      );
+
+      if (resultat.success) {
+        return res.status(200).json(resultat);
+      } else {
+        return res.status(400).json(resultat);
+      }
+    } catch (error) {
+      console.log("Une erreur s'est produite: ", error);
+      return res.status(500).json({
+        success: false,
+        message: "Erreur serveur lors de l'enregistrement du token",
       });
     }
   }

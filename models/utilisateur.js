@@ -328,5 +328,45 @@ class utilisateur {
       connexion.release();
     }
   }
+
+  //Envoyer FCM token
+  static async envoyerFCMToken(code_utilisateur, fcm_tokens) {
+    const connexion = await dataBase.getConnection();
+
+    try {
+      //Vérifier l'existance de l'utilisateur
+      const verif1 = await connexion.query(
+        "SELECT code_utilisateur FROM utilisateurs WHERE code_utilisateur=?",
+        [code_utilisateur],
+      );
+
+      if (verif1[0].length == 0) {
+        return {
+          success: false,
+          message: "Aucun utilisateur trouvé. Veuillez vous inscrire",
+        };
+      }
+
+      //Metter à jour le FCM token
+      const majToken = await connexion.query(
+        "UPDATE utilisateurs set fcm_tokens=? WHERE code_utilisateur=?",
+        [fcm_tokens, code_utilisateur],
+      );
+
+      if (majToken) {
+        return {
+          success: true,
+          message: "FCM Tokens mis à jour avec succès !",
+        };
+      }
+    } catch (error) {
+      console.log(error);
+      connexion.release;
+      return {
+        success: false,
+        message: "Une erreur s'est produite",
+      };
+    }
+  }
 }
 module.exports = utilisateur;

@@ -8,6 +8,8 @@ const bodyParser = require("body-parser");
 
 const app = express();
 
+require("./config/firebase.config");
+
 const options = {
   info: {
     title: "Documentation API AssurAppCI",
