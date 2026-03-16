@@ -346,29 +346,42 @@ class controllerPharmacie {
     try {
       const { code_pharmacie, est_de_garde } = req.body;
 
-      // Validation
-      if (!code_pharmacie || est_de_garde === undefined) {
+      console.log("=== CONTROLLER: STATUT GARDE ===");
+      console.log("Body:", req.body);
+
+      // ✅ Validation
+      if (!code_pharmacie) {
         return res.status(400).json({
           success: false,
-          message: "Code pharmacie et statut de garde requis",
+          message: "Code pharmacie requis",
         });
       }
 
-      // Convertir en booléen
-      const statut = est_de_garde === "DE GARDE" ? 1 : 0;
+      if (typeof est_de_garde !== "boolean") {
+        return res.status(400).json({
+          success: false,
+          message: "est_de_garde doit être un boolean",
+        });
+      }
 
-      // ✅ Appel simple au modèle
+      // ✅ Appeler le modèle
       const resultat = await modelPharmacie.mettreAJourStatutGarde(
         code_pharmacie,
-        statut,
+        est_de_garde,
       );
 
-      return res.status(resultat.success ? 200 : 400).json(resultat);
+      console.log("Résultat modèle:", resultat);
+
+      // ✅ IMPORTANT : Retourner la réponse au client
+      const statusCode = resultat.success ? 200 : 400;
+      return res.status(statusCode).json(resultat);
     } catch (error) {
       console.error("❌ Erreur controller:", error);
       return res.status(500).json({
         success: false,
         message: "Erreur serveur",
+        error:
+          process.env.NODE_ENV === "development" ? error.message : undefined,
       });
     }
   }
