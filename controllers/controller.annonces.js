@@ -17,7 +17,7 @@ class controllerAnnonces {
         });
       }
 
-      const resultat = await Annonces.envoyerAnnonce(
+      const resultat = await modelAnnonces.envoyerAnnonce(
         titre,
         contenu,
         code_gerant,

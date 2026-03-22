@@ -5,7 +5,7 @@ const routes = express.Router();
 //Abonnement aux newsLetters
 
 /**
- * GET /api/newsLetters/abonnement
+ * POST /api/newsLetters/abonnement
  * @summary Liste des abonnement de l'utilisateur
  * @tags NewsLetters
  * @param {string} codeUtilisateur.required - Code de l'utilisateur dont on veut la liste d'abonnement

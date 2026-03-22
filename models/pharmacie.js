@@ -2,6 +2,8 @@ const dataBase = require("../config/db_config.js");
 
 const { degreesToRadians, distance } = require("../utils/calculdistances.js");
 
+const notificationPush = require("../services/NotificationService.js");
+
 class Pharmacie {
   static randomAlphaNum(length) {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -160,7 +162,7 @@ GROUP BY
   p.numeros_pharmacie,
   p.email_pharmacie,
   p.horraires_ouverture,
-  p.est_de_garde as statut_garde
+  p.est_de_garde as statut_garde,
   a.longitude,
   a.latitude,
   a.adresse_fournit,
@@ -238,7 +240,7 @@ GROUP BY p.code_pharmacie`,
         p.numeros_pharmacie,
         p.email_pharmacie,
         p.horraires_ouverture,
-  p.est_de_garde as statut_garde
+  p.est_de_garde as statut_garde,
         a.longitude,
         a.latitude,
         a.adresse_fournit,
@@ -1012,6 +1014,42 @@ GROUP BY p.code_pharmacie`,
         };
       }
 
+      // Récupérer tous les abonnés de la pharmacie et son nom
+      const [infos] = await connexion.query(
+        `SELECT 
+    u.fcm_tokens as token,
+    p.nom_pharmacie 
+   FROM utilisateurs u 
+   INNER JOIN newsletter as n ON n.code_utilisateur = u.code_utilisateur 
+   INNER JOIN pharmacie as p ON p.code_pharmacie = n.code_pharmacie 
+   WHERE n.code_pharmacie = ? 
+   AND u.fcm_tokens IS NOT NULL`,
+        [code_pharmacie],
+      );
+
+      if (infos.length > 0) {
+        const nomPharmacie = infos[0].nom_pharmacie; // ✅ Récupérer le nom une seule fois
+
+        for (const info of infos) {
+          // ✅ "of" au lieu de "in"
+          console.log("Envoi notification à:", info.token);
+
+          const notificationData = {
+            titre: "Mise à jour statut de garde",
+            message: est_de_garde
+              ? `La pharmacie ${nomPharmacie} est actuellement de garde`
+              : `La pharmacie ${nomPharmacie} n'est plus de garde`,
+            type: "Information",
+          };
+
+          await notificationPush.envoyerNotificationUnique(
+            notificationData,
+            info.token,
+          );
+        }
+
+        console.log(`✅ ${infos.length} notification(s) envoyée(s)`);
+      }
       return {
         success: true,
         message: est_de_garde

@@ -16,7 +16,7 @@ class Annonces {
 
       // ✅ 1. Vérifier l'existence de la pharmacie
       const [pharmacie] = await connexion.query(
-        "SELECT code_pharmacie FROM utilisateur_gerant WHERE code_utilisateur = ?",
+        "SELECT u.code_pharmacie,p.nom_pharmacie FROM utilisateur_gerant as u INNER JOIN pharmacie as p ON p.code_pharmacie=u.code_pharmacie WHERE u.code_utilisateur = ?",
         [code_gerant],
       );
 
@@ -90,7 +90,7 @@ class Annonces {
           // Préparer le payload
           const payload = {
             notification: {
-              title: titre,
+              title: `${pharmacie[0].nom_pharmacie} - ${titre}`,
               body: contenu.substring(0, 240),
             },
             data: {
@@ -139,14 +139,32 @@ class Annonces {
         }
       }
 
-      // ✅ 5. Enregistrer l'annonce en BD
-      const [result] = await connexion.query(
+      const [result1] = await connexion.query(
         // ✅ Ajout de la destructuration [result]
         "INSERT INTO annonce(titre, contenu, code_pharmacie, date_publication, id_type_annonce) VALUES(?, ?, ?, NOW(), ?)",
         [titre, contenu, code_pharmacie, id_type_annonce],
       );
 
-      console.log("✅ Annonce enregistrée (ID:", result.insertId, ")");
+      let result;
+
+      for (const abonne of abonnes) {
+        console.log(abonne.code_utilisateur);
+        // ✅ 5. Enregistrer l'annonce en BD
+        [result] = await connexion.query(
+          // ✅ Ajout de la destructuration [result]
+          "INSERT INTO notifications(id_annonce,titre, contenu, code_pharmacie, date_publication, id_type_annonce,code_utilisateur) VALUES(?,?, ?, ?, NOW(), ?,?)",
+          [
+            result1.insertId,
+            titre,
+            contenu,
+            code_pharmacie,
+            id_type_annonce,
+            abonne.code_utilisateur,
+          ],
+        );
+      }
+
+      //console.log("✅ Annonce enregistrée (ID:", result.insertId, ")");
 
       // ✅ 6. Commit de la transaction
       await connexion.commit();
@@ -154,7 +172,7 @@ class Annonces {
       return {
         success: true,
         message: "Annonce envoyée avec succès",
-        id_annonce: result.insertId, // ✅ Variable maintenant accessible
+        id_annonce: result.insertId || null, // ✅ Variable maintenant accessible
         nb_abonnes: abonnes.length,
         nb_notifications_envoyees,
         nb_notifications_recues,
@@ -195,6 +213,7 @@ class Annonces {
           a.contenu,
           a.date_publication,
           ta.libelle_type_annonce
+          a.nombre_vues
          FROM annonce a
          INNER JOIN type_annonce ta ON a.id_type_annonce = ta.id_type_annonce
          WHERE a.code_pharmacie = ?
@@ -221,49 +240,6 @@ class Annonces {
   }
 
   /**
-   * Récupérer toutes les annonces (pour tous les utilisateurs)
-   */
-  static async getToutesLesAnnonces(limit = 50) {
-    let connexion;
-
-    try {
-      connexion = await dataBase.getConnection();
-
-      const [annonces] = await connexion.query(
-        `SELECT 
-          a.id_annonce,
-          a.titre,
-          a.contenu,
-          a.date_publication,
-          ta.libelle_type_annonce,
-          p.nom_pharmacie,
-          p.photo_pharmacie
-         FROM annonce a
-         INNER JOIN type_annonce ta ON a.id_type_annonce = ta.id_type_annonce
-         INNER JOIN pharmacie p ON a.code_pharmacie = p.code_pharmacie
-         ORDER BY a.date_publication DESC
-         LIMIT ?`,
-        [limit],
-      );
-
-      return {
-        success: true,
-        data: annonces,
-      };
-    } catch (error) {
-      console.error("❌ Erreur getToutesLesAnnonces:", error);
-      return {
-        success: false,
-        message: "Erreur lors de la récupération des annonces",
-      };
-    } finally {
-      if (connexion) {
-        connexion.release();
-      }
-    }
-  }
-
-  /**
    * Supprimer une annonce
    */
   static async supprimerAnnonce(id_annonce, code_gerant) {
@@ -275,7 +251,7 @@ class Annonces {
 
       // Vérifier que l'annonce appartient bien au gérant
       const [annonce] = await connexion.query(
-        `SELECT a.code_pharmacie 
+        `SELECT a.code_pharmacie,ug.code_pharmacie
          FROM annonce a
          INNER JOIN utilisateur_gerant ug ON a.code_pharmacie = ug.code_pharmacie
          WHERE a.id_annonce = ? AND ug.code_utilisateur = ?`,
@@ -292,9 +268,10 @@ class Annonces {
       }
 
       // Supprimer l'annonce
-      await connexion.query("DELETE FROM annonce WHERE id_annonce = ?", [
-        id_annonce,
-      ]);
+      await connexion.query(
+        "DELETE FROM annonce WHERE id_annonce = ? AND code_pharmacie=?",
+        [id_annonce, annonce.code_pharmacie],
+      );
 
       await connexion.commit();
 
