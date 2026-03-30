@@ -45,8 +45,10 @@ class Pharmacie {
   p.nom_pharmacie,
   p.photo_pharmacie,
   p.numeros_pharmacie,
-  p.horraires_ouverture,
   p.email_pharmacie,
+  GROUP_CONCAT(DISTINCT h.en_semaine SEPARATOR ', ') as horaire_semaine,
+  GROUP_CONCAT(DISTINCT h.samedi SEPARATOR ', ') as horaire_samedi,
+  GROUP_CONCAT(DISTINCT h.dimanche SEPARATOR ', ') as horaire_dimanche,
   p.est_de_garde as statut_garde,
   a.longitude,
   a.latitude,
@@ -54,19 +56,22 @@ class Pharmacie {
   v.nom_ville,
   s.libelle_statut,
   GROUP_CONCAT(ass.nom_assurance SEPARATOR ', ') as assurances_acceptees
-FROM pharmacie as p 
+FROM pharmacie as p
+LEFT JOIN horaires_ouverture as h ON h.code_pharmacie=p.code_pharmacie
 INNER JOIN adresse_pharmacie as a ON a.code_pharmacie = p.code_pharmacie 
-INNER JOIN villes as v ON v.id_ville = a.id_ville 
 INNER JOIN statut as s ON s.id_statut = p.id_statut
 LEFT JOIN pharmacie_assurance as pa ON pa.code_pharmacie = p.code_pharmacie
 LEFT JOIN assurances as ass ON ass.id_assurance = pa.id_assurance
+LEFT JOIN villes as v ON v.id_ville=a.id_ville
 WHERE p.code_pharmacie = ?
 GROUP BY 
   p.code_pharmacie,
   p.nom_pharmacie,
   p.photo_pharmacie,
   p.numeros_pharmacie,
-  p.horraires_ouverture,
+  h.en_semaine,
+  h.samedi,
+  h.dimanche,
   p.email_pharmacie,
   p.est_de_garde,
   a.longitude,
@@ -161,7 +166,9 @@ GROUP BY
   p.photo_pharmacie,
   p.numeros_pharmacie,
   p.email_pharmacie,
-  p.horraires_ouverture,
+  GROUP_CONCAT(DISTINCT h.en_semaine SEPARATOR ', ') as horaire_semaine,
+  GROUP_CONCAT(DISTINCT h.samedi SEPARATOR ', ') as horaire_samedi,
+  GROUP_CONCAT(DISTINCT h.dimanche SEPARATOR ', ') as horaire_dimanche,
   p.est_de_garde as statut_garde,
   a.longitude,
   a.latitude,
@@ -169,7 +176,8 @@ GROUP BY
   v.nom_ville,
   s.libelle_statut,
   GROUP_CONCAT(ass.nom_assurance SEPARATOR ', ') as assurances_acceptees
-FROM pharmacie as p 
+FROM pharmacie as p
+LEFT JOIN horaires_ouverture as h ON h.code_pharmacie=p.code_pharmacie
 INNER JOIN adresse_pharmacie as a ON a.code_pharmacie = p.code_pharmacie 
 INNER JOIN statut as s ON s.id_statut = p.id_statut
 LEFT JOIN pharmacie_assurance as pa ON pa.code_pharmacie = p.code_pharmacie
@@ -212,7 +220,7 @@ GROUP BY p.code_pharmacie`,
         success: true,
         message:
           latitude && longitude
-            ? "Liste des pharmacies dans un rayon 1KM"
+            ? "Liste des pharmacies dans un rayon 5KM"
             : "Liste des pharmacies",
         data: pharmacieFiltre.length !== 0 ? pharmacieFiltre : [],
       };
@@ -234,26 +242,29 @@ GROUP BY p.code_pharmacie`,
     try {
       const requete = await connexion.query(
         `SELECT 
-        p.code_pharmacie,
-        p.nom_pharmacie,
-        p.photo_pharmacie,
-        p.numeros_pharmacie,
-        p.email_pharmacie,
-        p.horraires_ouverture,
+  p.code_pharmacie,
+  p.nom_pharmacie,
+  p.photo_pharmacie,
+  p.numeros_pharmacie,
+  p.email_pharmacie,
+  GROUP_CONCAT(DISTINCT h.en_semaine SEPARATOR ', ') as horaire_semaine,
+  GROUP_CONCAT(DISTINCT h.samedi SEPARATOR ', ') as horaire_samedi,
+  GROUP_CONCAT(DISTINCT h.dimanche SEPARATOR ', ') as horaire_dimanche,
   p.est_de_garde as statut_garde,
-        a.longitude,
-        a.latitude,
-        a.adresse_fournit,
-        v.nom_ville,
-        s.libelle_statut,
-        GROUP_CONCAT(ass.nom_assurance SEPARATOR ', ') as assurances_acceptees
-      FROM pharmacie as p 
-      INNER JOIN adresse_pharmacie as a ON a.code_pharmacie = p.code_pharmacie 
-      INNER JOIN statut as s ON s.id_statut = p.id_statut
-      LEFT JOIN pharmacie_assurance as pa ON pa.code_pharmacie = p.code_pharmacie
-      LEFT JOIN assurances as ass ON ass.id_assurance = pa.id_assurance
-      LEFT JOIN villes as v ON v.id_ville=a.id_ville
-      GROUP BY p.code_pharmacie`,
+  a.longitude,
+  a.latitude,
+  a.adresse_fournit,
+  v.nom_ville,
+  s.libelle_statut,
+  GROUP_CONCAT(ass.nom_assurance SEPARATOR ', ') as assurances_acceptees
+FROM pharmacie as p
+LEFT JOIN horaires_ouverture as h ON h.code_pharmacie=p.code_pharmacie
+INNER JOIN adresse_pharmacie as a ON a.code_pharmacie = p.code_pharmacie 
+INNER JOIN statut as s ON s.id_statut = p.id_statut
+LEFT JOIN pharmacie_assurance as pa ON pa.code_pharmacie = p.code_pharmacie
+LEFT JOIN assurances as ass ON ass.id_assurance = pa.id_assurance
+LEFT JOIN villes as v ON v.id_ville=a.id_ville
+GROUP BY p.code_pharmacie`,
       );
 
       const Resultatpharmacies = requete[0];
@@ -293,7 +304,7 @@ GROUP BY p.code_pharmacie`,
               distance: distanceEntre, // 👉 ajout ici
             };
           })
-          .filter((p) => p.distance <= 1000);
+          .filter((p) => p.distance <= 5000);
       }
 
       return {
@@ -315,12 +326,15 @@ GROUP BY p.code_pharmacie`,
       connexion.release();
     }
   }
+  //Ajouter pharmacie
   static async ajouterPharmacie(
     code_gerant,
     nom_pharmacie,
     photo_pharmacie,
     numero_pharmacie,
-    horraires_ouverture,
+    horaires_en_semaine,
+    horaires_samedi,
+    horaires_dimanche,
     latitude, // ✅ Paramètre renommé (était latitudePharmacie)
     longitude, // ✅ Paramètre renommé (était longitudePharmacie)
     ville_pharmacie,
@@ -335,7 +349,9 @@ GROUP BY p.code_pharmacie`,
     console.log("nom_pharmacie:", nom_pharmacie);
     console.log("photo_pharmacie:", photo_pharmacie);
     console.log("numero_pharmacie:", numero_pharmacie);
-    console.log("horraires_ouverture:", horraires_ouverture);
+    console.log("horaires_en_semaine:", horaires_en_semaine);
+    console.log("horaires_samedi:", horaires_samedi);
+    console.log("horaires_dimanche,:", horaires_dimanche);
     console.log("latitude:", latitude, "| Type:", typeof latitude);
     console.log("longitude:", longitude, "| Type:", typeof longitude);
     console.log("ville_pharmacie:", ville_pharmacie);
@@ -350,7 +366,9 @@ GROUP BY p.code_pharmacie`,
         nom_pharmacie &&
         photo_pharmacie &&
         numero_pharmacie &&
-        horraires_ouverture &&
+        horaires_en_semaine &&
+        horaires_samedi &&
+        horaires_dimanche !== undefined &&
         latitude !== undefined && // ✅ Accepte 0
         longitude !== undefined && // ✅ Accepte 0
         ville_pharmacie &&
@@ -367,7 +385,9 @@ GROUP BY p.code_pharmacie`,
         nom_pharmacie: !!nom_pharmacie,
         photo_pharmacie: !!photo_pharmacie,
         numero_pharmacie: !!numero_pharmacie,
-        horraires_ouverture: !!horraires_ouverture,
+        horaires_en_semaine: horaires_en_semaine,
+        horaires_samedi: horaires_samedi,
+        horaires_dimanche: horaires_dimanche !== undefined,
         latitude: latitude !== undefined,
         longitude: longitude !== undefined,
         ville_pharmacie: !!ville_pharmacie,
@@ -479,18 +499,31 @@ GROUP BY p.code_pharmacie`,
       console.log("✅ Code pharmacie généré:", code_pharma);
 
       // Enregistrement dans pharmacies
-      await connexion.query(
+      const [newPharma] = await connexion.query(
         `INSERT INTO pharmacie 
-      (code_pharmacie, nom_pharmacie, photo_pharmacie, numeros_pharmacie, 
-       horraires_ouverture, id_statut, email_pharmacie) 
-      VALUES (?, ?, ?, ?, ?, 1, ?)`,
+      (code_pharmacie, nom_pharmacie, photo_pharmacie, numeros_pharmacie, id_statut, email_pharmacie) 
+      VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
           code_pharma,
           nom_pharmacie,
           photo_pharmacie,
           numero_pharmacie,
-          horraires_ouverture,
+          1,
           email_pharmacie,
+        ],
+      );
+
+      if (newPharma.insertId == null) {
+        throw new Exception("Erreur lors de l'enregistrement de la pharmacie");
+      }
+      //Enregistrer les horaires d'ouverture
+      await connexion.query(
+        "INSERT INTO horaires_ouverture(code_pharmacie, en_semaine,samedi,dimanche) VALUES(?,?,?,?)",
+        [
+          code_pharma,
+          horaires_en_semaine ?? "Fermé",
+          horaires_samedi ?? "Fermé",
+          horaires_dimanche ?? "Fermé",
         ],
       );
 
@@ -603,14 +636,16 @@ GROUP BY p.code_pharmacie`,
       console.log("✅ Connexion relâchée");
     }
   }
-  //Modifier infos pharmacie
 
+  //Modifier infos pharmacie
   static async modifierPharmacie(
     code_pharmacie,
     nom_pharmacie,
     photo_pharmacie,
     numero_pharmacie,
-    horraires_ouverture,
+    horaires_en_semaine,
+    horaires_samedi,
+    horaires_dimanche,
     latitude,
     longitude,
     ville_pharmacie,
@@ -625,7 +660,9 @@ GROUP BY p.code_pharmacie`,
     console.log("nom_pharmacie:", nom_pharmacie);
     console.log("photo_pharmacie:", photo_pharmacie);
     console.log("numero_pharmacie:", numero_pharmacie);
-    console.log("horraires_ouverture:", horraires_ouverture);
+    console.log("horaires_en_semaine:", horaires_en_semaine);
+    console.log("horaires_samedi:", horaires_samedi);
+    console.log("horaires_dimanche,:", horaires_dimanche);
     console.log("latitude:", latitude, "| Type:", typeof latitude);
     console.log("longitude:", longitude, "| Type:", typeof longitude);
     console.log("ville_pharmacie:", ville_pharmacie);
@@ -730,11 +767,6 @@ GROUP BY p.code_pharmacie`,
         updateValuesPharmacie.push(numero_pharmacie);
       }
 
-      if (horraires_ouverture) {
-        updateFieldsPharmacie.push("horraires_ouverture = ?");
-        updateValuesPharmacie.push(horraires_ouverture);
-      }
-
       if (email_pharmacie) {
         updateFieldsPharmacie.push("email_pharmacie = ?");
         updateValuesPharmacie.push(email_pharmacie);
@@ -755,6 +787,22 @@ GROUP BY p.code_pharmacie`,
 
         await connexion.query(updateQueryPharmacie, updateValuesPharmacie);
         console.log("✅ Table pharmacie mise à jour");
+      }
+
+      //Mise à jour horaires pharmacie
+      if (horaires_en_semaine || horaires_samedi || horaires_dimanche) {
+        const code_pharma = pharmacieActuelle.code_pharmacie;
+        if (code_pharma) {
+          await connexion.query(
+            "UPDATE horaires_ouverture SET en_semaine=?, samedi=?, dimanche=? WHERE code_pharmacie=?",
+            [
+              horaires_en_semaine ?? "Fermée",
+              horaires_samedi ?? "Fermée",
+              horaires_dimanche ?? "Fermée",
+              code_pharma,
+            ],
+          );
+        }
       }
 
       // ✅ 2. MISE À JOUR ADRESSE
@@ -900,6 +948,7 @@ GROUP BY p.code_pharmacie`,
     }
   }
 
+  //Récupérer les statistiques la pharmacie
   static async recupererStatistiques(code_pharmacie) {
     const connexion = dataBase.getConnection();
 
@@ -985,6 +1034,7 @@ GROUP BY p.code_pharmacie`,
     }
   }
 
+  //Mettre à jour statut de garde
   static async mettreAJourStatutGarde(code_pharmacie, est_de_garde) {
     const connexion = await dataBase.getConnection();
 

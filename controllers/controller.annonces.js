@@ -1,5 +1,6 @@
 const express = require("express");
 const modelAnnonces = require("../models/annonces");
+const modelAbonnement = require("../models/abonnements");
 
 class controllerAnnonces {
   /**
@@ -16,6 +17,11 @@ class controllerAnnonces {
           message: "Tous les champs sont requis",
         });
       }
+
+      await modelAbonnement.verifierAccesFonctionnalite(
+        code_gerant,
+        type_annonce.toLowerCase() != "annonces" ? "NEWSLETTER" : "ANNONCES",
+      );
 
       const resultat = await modelAnnonces.envoyerAnnonce(
         titre,
@@ -40,11 +46,11 @@ class controllerAnnonces {
    */
   static async getAnnoncesParPharmacie(req, res) {
     try {
-      const { code_pharmacie } = req.params;
+      const { code_gerant } = req.query;
       const limit = parseInt(req.query.limit) || 10;
 
-      const resultat = await Annonces.getAnnoncesParPharmacie(
-        code_pharmacie,
+      const resultat = await modelAnnonces.getAnnoncesParPharmacie(
+        code_gerant,
         limit,
       );
 
@@ -66,7 +72,7 @@ class controllerAnnonces {
     try {
       const limit = parseInt(req.query.limit) || 50;
 
-      const resultat = await Annonces.getToutesLesAnnonces(limit);
+      const resultat = await modelAnnonces.getToutesLesAnnonces(limit);
 
       const statusCode = resultat.success ? 200 : 400;
       return res.status(statusCode).json(resultat);
@@ -94,7 +100,10 @@ class controllerAnnonces {
         });
       }
 
-      const resultat = await Annonces.supprimerAnnonce(id_annonce, code_gerant);
+      const resultat = await modelAnnonces.supprimerAnnonce(
+        id_annonce,
+        code_gerant,
+      );
 
       const statusCode = resultat.success ? 200 : 400;
       return res.status(statusCode).json(resultat);

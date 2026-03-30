@@ -200,7 +200,7 @@ class Annonces {
   /**
    * Récupérer les annonces d'une pharmacie
    */
-  static async getAnnoncesParPharmacie(code_pharmacie, limit = 10) {
+  static async getAnnoncesParPharmacie(code_gerant, limit = 10) {
     let connexion;
 
     try {
@@ -212,18 +212,20 @@ class Annonces {
           a.titre,
           a.contenu,
           a.date_publication,
-          ta.libelle_type_annonce
-          a.nombre_vues
+          ta.libelle_type_annonce,
+          a.nombre_vue
          FROM annonce a
          INNER JOIN type_annonce ta ON a.id_type_annonce = ta.id_type_annonce
-         WHERE a.code_pharmacie = ?
+         INNER JOIN utilisateur_gerant ug ON ug.code_pharmacie=a.code_pharmacie
+         WHERE ug.code_utilisateur = ? AND a.id_type_annonce LIKE ?
          ORDER BY a.date_publication DESC
          LIMIT ?`,
-        [code_pharmacie, limit],
+        [code_gerant, 7, limit],
       );
 
       return {
         success: true,
+        total_annonces: annonces.length,
         data: annonces,
       };
     } catch (error) {

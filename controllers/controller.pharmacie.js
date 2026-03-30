@@ -52,6 +52,9 @@ class controllerPharmacie {
         email_pharmacie,
         ville_pharmacie,
         adresse_fournit,
+        horaires_en_semaine,
+        horaires_samedi,
+        horaires_dimanche,
         horraires_ouverture,
         latitudePharmacie,
         longitudePharmacie,
@@ -66,7 +69,9 @@ class controllerPharmacie {
         !email_pharmacie ||
         !ville_pharmacie ||
         !adresse_fournit ||
-        !horraires_ouverture
+        !horaires_en_semaine ||
+        !horaires_samedi ||
+        !horaires_dimanche
       ) {
         return res.status(400).json({
           success: false,
@@ -189,7 +194,9 @@ class controllerPharmacie {
         email_pharmacie,
         ville_pharmacie,
         adresse_fournit,
-        horraires_ouverture,
+        horaires_en_semaine,
+        horaires_samedi,
+        horaires_dimanche,
         latitudePharmacie,
         longitudePharmacie,
         liste_assurance_accepte,
@@ -268,7 +275,9 @@ class controllerPharmacie {
         nom_pharmacie,
         photo_pharmacie, // Peut être null
         numero_pharmacie,
-        horraires_ouverture,
+        horaires_en_semaine,
+        horaires_samedi,
+        horaires_dimanche,
         latitude, // Peut être undefined
         longitude, // Peut être undefined
         ville_pharmacie,

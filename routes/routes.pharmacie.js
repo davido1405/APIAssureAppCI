@@ -4,24 +4,6 @@ const upload = require("../middleware/upload");
 const routes = express.Router();
 const { verifierAccesFonctionnalite } = require("../middleware/verifierAcces");
 
-// Route protégée - Envoi de newsletter (Standard/Premium uniquement)
-routes.post(
-  "/newsletter/envoyer",
-  verifierAccesFonctionnalite("NEWSLETTER"),
-  (req, res) => {
-    return controllerPharmacie.envoyerNewsletter(req, res);
-  },
-);
-
-// Route protégée - Créer une annonce
-routes.post(
-  "/annonce/creer",
-  verifierAccesFonctionnalite("ANNONCES"),
-  (req, res) => {
-    return controllerPharmacie.creerAnnonce(req, res);
-  },
-);
-
 // Route protégée - Statistiques avancées (Premium uniquement)
 routes.get(
   "/statistiques/avancees/:code_pharmacie",
@@ -70,7 +52,9 @@ routes.post("/ajouterassurance", (req, res) => {
  * @property {string} code_gerant.required - Code de l'utilisateur qui gère la pharmacie - application/x-www-form-urlencoded
  * @property {string} nom_pharmacie.required - Nom de la pharmacie à enregistrer - application/x-www-form-urlencoded
  * @property {string} numero_pharmacie.required - Numéros de la pharmacie à enregistrer - application/x-www-form-urlencoded
- * @property {string} horraires_ouverture.required - Les horaires d'ouverture de la pharmacie - application/x-www-form-urlencoded
+ * @property {string} horaires_en_semaine.required - Les horaires d'ouverture de la pharmacie en semaine - application/x-www-form-urlencoded
+ * @property {string} horaires_samedi.required - Les horaires d'ouverture de la pharmacie le samedi - application/x-www-form-urlencoded
+ * @property {string} horaires_dimanche.required - Les horaires d'ouverture de la pharmacie le dimanche - application/x-www-form-urlencoded
  * @property {string} email_pharmacie.required - Email de la pharmacie à enregistrer - application/x-www-form-urlencoded
  * @property {number} latitudePharmacie.required - Latitude de la position de la pharmacie - application/x-www-form-urlencoded
  * @property {number} longitudePharmacie.required - Longitude de la position de la pharmacie - application/x-www-form-urlencoded
@@ -98,7 +82,9 @@ routes.post("/ajouterPharmacie", upload.single("photo"), (req, res) => {
  * @property {string} code_gerant.required - Code de l'utilisateur qui gère la pharmacie - application/x-www-form-urlencoded
  * @property {string} nom_pharmacie - Nom de la pharmacie à enregistrer - application/x-www-form-urlencoded
  * @property {string} numero_pharmacie - Numéros de la pharmacie à enregistrer - application/x-www-form-urlencoded
- * @property {string} horraires_ouverture - Les horaires d'ouverture de la pharmacie - application/x-www-form-urlencoded
+ * @property {string} horaires_en_semaine - Les horaires d'ouverture de la pharmacie en semaine - application/x-www-form-urlencoded
+ * @property {string} horaires_samedi - Les horaires d'ouverture de la pharmacie le samedi - application/x-www-form-urlencoded
+ * @property {string} horaires_dimanche - Les horaires d'ouverture de la pharmacie le dimanche - application/x-www-form-urlencoded
  * @property {string} email_pharmacie - Email de la pharmacie à enregistrer - application/x-www-form-urlencoded
  * @property {number} latitudePharmacie - Latitude de la position de la pharmacie - application/x-www-form-urlencoded
  * @property {number} longitudePharmacie - Longitude de la position de la pharmacie - application/x-www-form-urlencoded

@@ -49,7 +49,7 @@ routes.post("/envoyer", controllerAnnonce.envoyerAnnonce);
 // ============================================
 
 /**
- * GET /api/annonces/pharmacie/{code_pharmacie}
+ * GET /api/annonces/pharmacie
  * @summary Récupérer les annonces d'une pharmacie spécifique
  * @tags Annonces
  * @param {string} code_pharmacie.path.required - Code de la pharmacie
@@ -71,10 +71,7 @@ routes.post("/envoyer", controllerAnnonce.envoyerAnnonce);
  *   ]
  * }
  */
-routes.get(
-  "/pharmacie/:code_pharmacie",
-  controllerAnnonce.getAnnoncesParPharmacie,
-);
+routes.get("/pharmacie", controllerAnnonce.getAnnoncesParPharmacie);
 
 // ============================================
 // RÉCUPÉRER TOUTES LES ANNONCES

@@ -28,10 +28,10 @@ class Notifications {
          INNER JOIN type_annonce ta ON n.id_type_annonce = ta.id_type_annonce
          INNER JOIN statut st ON n.id_statut = st.id_statut
          INNER JOIN pharmacie p ON n.code_pharmacie = p.code_pharmacie
-         WHERE n.code_utilisateur=?
+         WHERE n.code_utilisateur=? AND n.id_type_annonce NOT LIKE ?
          ORDER BY n.date_publication DESC
          LIMIT ?`,
-        [code_utilisateur, limitNumber],
+        [code_utilisateur, 7, limitNumber],
       );
 
       return {
