@@ -1,6 +1,7 @@
 const express = require("express");
 const modelAnnonces = require("../models/annonces");
 const modelAbonnement = require("../models/abonnements");
+const { default: logger } = require("../logger");
 
 class controllerAnnonces {
   /**
@@ -100,6 +101,7 @@ class controllerAnnonces {
         });
       }
 
+      logger.info("${code_gerant} tente de supprimer un annonce");
       const resultat = await modelAnnonces.supprimerAnnonce(
         id_annonce,
         code_gerant,
