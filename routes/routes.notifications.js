@@ -4,6 +4,7 @@ const express = require("express");
 const routes = express.Router();
 
 const controllerNotification = require("../controllers/controller.notifications");
+const logger = require("../logger");
 
 // ============================================
 // RÉCUPÉRER LES NOTIFICATION D'UN UTILISATEUR
@@ -35,7 +36,9 @@ const controllerNotification = require("../controllers/controller.notifications"
  *   ]
  * }
  */
-routes.get("/", controllerNotification.getToutesLesNotifications);
+routes.get("/", (req, res) => {
+  return controllerNotification.getToutesLesNotifications;
+});
 
 // ============================================
 // MARQUER UNE NOTIFICATION LU
@@ -66,7 +69,9 @@ routes.get("/", controllerNotification.getToutesLesNotifications);
  *   "message": "Notification supprimée avec succès"
  * }
  */
-routes.put("/lireNotifications", controllerNotification.LireNotification);
+routes.put("/lireNotifications", (req, res) => {
+  return controllerNotification.LireNotification;
+});
 
 // ============================================
 // SUPPRIMER UNE NOTIFICATION
@@ -96,9 +101,8 @@ routes.put("/lireNotifications", controllerNotification.LireNotification);
  *   "message": "Annonce supprimée avec succès"
  * }
  */
-routes.delete(
-  "/supprimerNotification",
-  controllerNotification.supprimerNotification,
-);
+routes.delete("/supprimerNotification", (req, res) => {
+  controllerNotification.supprimerNotification;
+});
 
 module.exports = routes;

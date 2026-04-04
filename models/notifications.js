@@ -1,6 +1,7 @@
 // models/notifications.js
 
 const dataBase = require("../config/db_config.js");
+const logger = require("../logger.js");
 
 class Notifications {
   /**
@@ -14,6 +15,7 @@ class Notifications {
       // ✅ S'assurer que limit est un nombre
       const limitNumber = parseInt(limit, 10) || 20;
 
+      logger.debug(`Exécution de la requête de suppression...`);
       const [notifications] = await connexion.query(
         `SELECT 
           n.id_annonce,
@@ -34,11 +36,15 @@ class Notifications {
         [code_utilisateur, 7, limitNumber],
       );
 
+      logger.debug(`Requete exécutée avec succès`);
       return {
         success: true,
         data: notifications,
       };
     } catch (error) {
+      logger.error(
+        `Erreur lors de la récupération de notification utilisateur: ${code_utilisateur} erreur: ${error.message}`,
+      );
       console.error("❌ Erreur récupération des notifications:", error);
       return {
         success: false,
@@ -57,10 +63,14 @@ class Notifications {
   static async marquerLu(id_annonce, code_utilisateur) {
     let connexion;
 
+    logger.debug(
+      `Tentative de lecture de notification... utilisateur: ${code_utilisateur} notification: ${id_annonce}`,
+    );
     try {
       connexion = await dataBase.getConnection();
       await connexion.beginTransaction();
 
+      logger.debug(`Vérification existance de la notification: ${id_annonce}`);
       // Vérifier que l'existance de la notification
       const [notification] = await connexion.query(
         `SELECT n.id_notification 
@@ -70,6 +80,9 @@ class Notifications {
       );
 
       if (notification.length === 0) {
+        logger.debug(
+          `Aucune notification trouvé. utilisateur: ${code_utilisateur} notification: ${id_annonce}`,
+        );
         await connexion.rollback();
         connexion.release();
         return {
@@ -78,12 +91,18 @@ class Notifications {
         };
       }
 
+      logger.debug(
+        `Marquage notification comme lu... utilisateur: ${code_utilisateur} notification: ${id_annonce}`,
+      );
       // Marquer lu la notification
       await connexion.query(
         "UPDATE notifications SET id_statut=? WHERE id_annonce = ? AND code_utilisateur=?",
         [7, id_annonce, code_utilisateur],
       );
 
+      logger.debug(
+        `Vérification si déjà marqué vue... utilisateur: ${code_utilisateur} notification: ${id_annonce}`,
+      );
       //Vérifier si pas déjà compter
       const [deja_vue] = await connexion.query(
         "SELECT id_historique,date_vue FROM historique_vue WHERE id_annonce=? AND code_utilisateur=?",
@@ -91,6 +110,9 @@ class Notifications {
       );
 
       if (deja_vue.length > 0) {
+        logger.debug(
+          `Déjà marqué vue utilisateur: ${code_utilisateur} notification: ${id_annonce}`,
+        );
         await connexion.commit();
 
         return {
@@ -99,12 +121,16 @@ class Notifications {
         };
       }
 
+      logger.debug(
+        `Mise à jour nombre de vue pour la notification... utilisateur: ${code_utilisateur} notification: ${id_annonce}`,
+      );
       //Incrémenter le nombre de vue dans annonce
       await connexion.query(
         "UPDATE annonce SET nombre_vue=+1 WHERE id_annonce=?",
         [id_annonce],
       );
 
+      logger.debug(`Historisation de vue`);
       //Historiser la vue
       await connexion.query(
         "INSERT INTO historique_vue(id_annonce,code_utilisateur)VALUES(?,?)",
@@ -113,11 +139,17 @@ class Notifications {
 
       await connexion.commit();
 
+      logger.debug(
+        `Notification marqué lu et historisée avec succès! utilisateur: ${code_utilisateur} notification: ${id_annonce}`,
+      );
       return {
         success: true,
         message: "Annonce lu avec succès",
       };
     } catch (error) {
+      logger.error(
+        `Erreur lecture de notification utilisateur: ${code_utilisateur} notification: ${id_annonce} erreur: ${error.message}`,
+      );
       console.error("❌ Erreur lecture annonce:", error);
 
       if (connexion) {
@@ -145,6 +177,11 @@ class Notifications {
       connexion = await dataBase.getConnection();
       await connexion.beginTransaction();
 
+      logger.debug(
+        `Tentative de suppression d'annonce... gerant: ${code_utilisateur} annonce: ${id_annonce}`,
+      );
+
+      logger.debug(`Vérifier que l'annonce appartient bien au gérant`);
       // Vérifier que l'annonce appartient bien au gérant
       const [notification] = await connexion.query(
         `SELECT n.code_utilisateur 
@@ -154,6 +191,9 @@ class Notifications {
       );
 
       if (notification.length === 0) {
+        logger.debug(
+          `Aucune annonce correspondante trouvée gerant: ${code_utilisateur} annonce: ${id_annonce}`,
+        );
         await connexion.rollback();
         connexion.release();
         return {
@@ -161,7 +201,7 @@ class Notifications {
           message: "Notification introuvable ou non autorisée",
         };
       }
-
+      logger.debug(`Suppression de l'annonce... annonce: ${id_annonce}`);
       // Supprimer l'annonce
       await connexion.query(
         "DELETE FROM notifications WHERE id_annonce = ? AND  code_utilisateur=?",
@@ -170,11 +210,17 @@ class Notifications {
 
       await connexion.commit();
 
+      logger.debug(
+        `Annonce supprimée avec succès gérant: ${code_utilisateur} annonce: ${id_annonce}`,
+      );
       return {
         success: true,
         message: "Notification supprimée avec succès",
       };
     } catch (error) {
+      logger.error(
+        `Erreur lors de la suppression de l'annonce: ${id_annonce} gérant: ${code_utilisateur} erreur: ${error.message}`,
+      );
       console.error("❌ Erreur suppression notification:", error);
 
       if (connexion) {

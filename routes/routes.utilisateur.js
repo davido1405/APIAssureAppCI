@@ -4,6 +4,7 @@ const routes = express.Router();
 
 const controllerUtilisateur = require("../controllers/controller.utilisateurs");
 const { route } = require("./routes.annonces");
+const logger = require("../logger");
 
 /**
  * @typedef {object} informationInscription
@@ -137,5 +138,7 @@ routes.post("/ajouterAssurance", (req, res) => {
  * @return {object} 400 - Impossible de trouver l'utilisateur
  * @return {object} 500 - Erreur Serveur
  */
-routes.put("/envoyerFCMT", controllerUtilisateur.envoyerFCMToken);
+routes.put("/envoyerFCMT", (req, res) => {
+  return controllerUtilisateur.envoyerFCMToken(req, res);
+});
 module.exports = routes;

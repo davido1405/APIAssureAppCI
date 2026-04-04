@@ -1,6 +1,7 @@
 const express = require("express");
 const routes = express.Router();
 const AbonnementController = require("../controllers/controller.abonnements");
+const logger = require("../logger");
 /**
  * GET /api/abonnements/forfaits
  * @summary Récupérer tous les forfaits disponible

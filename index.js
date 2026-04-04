@@ -1,4 +1,7 @@
 const express = require("express");
+const cors = require("cors");
+const rateLimit = require("express-rate-limit");
+const helmet = require("helmet");
 
 require("dotenv").config();
 const routes = require("./routes/api");
@@ -26,7 +29,30 @@ const options = {
 
 expressJsdocSwagger(app)(options);
 
+app.use(helmet());
+
+app.use(cors());
+
 app.use(bodyParser.json());
+
+app.use(
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+  }),
+);
+
+app.use((req, res, next) => {
+  const debut = Date.now();
+  res.on("finish", () => {
+    const tempsExecution = Date.now() - debut;
+    logger.http(
+      `methode: ${req.method} origine: ${req.originalUrl} statusRequete: ${res.statusCode} tempsExecution: ${tempsExecution}ms`,
+    );
+  });
+
+  next();
+});
 
 app.use("/api", routes);
 

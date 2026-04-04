@@ -3,6 +3,7 @@ const controllerPharmacie = require("../controllers/controller.pharmacie");
 const upload = require("../middleware/upload");
 const routes = express.Router();
 const { verifierAccesFonctionnalite } = require("../middleware/verifierAcces");
+const logger = require("../logger");
 
 // Route protégée - Statistiques avancées (Premium uniquement)
 routes.get(

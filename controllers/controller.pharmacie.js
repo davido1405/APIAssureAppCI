@@ -4,6 +4,8 @@ const modelPharmacie = require("../models/pharmacie");
 
 const ImageManagement = require("../services/UploadImages");
 const e = require("express");
+const logger = require("../logger");
+const { error } = require("winston");
 
 class controllerPharmacie {
   //Récupérer le profile de la pharmacie
@@ -45,6 +47,10 @@ class controllerPharmacie {
       console.log("Body:", req.body);
       console.log("File:", req.file);
 
+      logger.info(
+        `Ajout d'une nouvelle pharmacie... => pharmacie: ${nom_pharmacie} date: ${new Date().toISOString} origine: ${req.hostname}`,
+      );
+
       const {
         code_gerant,
         nom_pharmacie,
@@ -73,6 +79,9 @@ class controllerPharmacie {
         !horaires_samedi ||
         !horaires_dimanche
       ) {
+        logger.info(
+          `Tentative d'ajout d'une pharmacie avec des informations manquante => Origine: ${req.hostname}`,
+        );
         return res.status(400).json({
           success: false,
           message: "Tous les champs requis doivent être remplis",
@@ -96,6 +105,9 @@ class controllerPharmacie {
       let photo_pharmacie = null;
 
       if (req.file && req.file.buffer) {
+        logger.info(
+          `Uploading photo de pharmacie vers cloudinary... => pharmacie: ${nom_pharmacie}`,
+        );
         try {
           const fileName = `PHARM-${Date.now()}-${code_gerant}`;
           console.log("📤 Upload vers Cloudinary...");
@@ -106,8 +118,13 @@ class controllerPharmacie {
           );
 
           photo_pharmacie = uploadResult.secure_url;
-          console.log("✅ Photo uploadée:", photo_pharmacie);
+          logger.info(
+            `Photo uploadé avec succès => pharmacie: ${nom_pharmacie} nom_fichier: ${fileName}`,
+          );
         } catch (uploadError) {
+          logger.warn(
+            `Echec uploading photo => pharmacie: ${nom_pharmacie} cause: ${uploadError.message}`,
+          );
           console.error("❌ Erreur upload Cloudinary:", uploadError);
           return res.status(500).json({
             success: false,
@@ -121,6 +138,9 @@ class controllerPharmacie {
 
       // ✅ Vérifier que la photo est présente
       if (!photo_pharmacie) {
+        logger.info(
+          `Tentative d'enregistrement d'une nouvelle pharmacie sans photo => pharmacie: ${nom_pharmacie} origine:${req.hostname}`,
+        );
         return res.status(400).json({
           success: false,
           message: "La photo de la pharmacie est requise",
@@ -169,6 +189,9 @@ class controllerPharmacie {
 
       return res.status(reponse.success ? 201 : 400).json(reponse);
     } catch (error) {
+      logger.info(
+        `Echec ajout de nouvelle pharmacie => pharmacie: ${nom_pharmacie} origine: ${req.hostname}`,
+      );
       console.error("❌ Erreur ajouterPharmacie:", error);
       console.error("Stack:", error.stack);
       return res.status(500).json({
@@ -182,6 +205,7 @@ class controllerPharmacie {
   //Mettre à jour infos pharmacie
 
   static async modifierPharmacie(req, res) {
+    logger.debug(`Mise à jour profil pharmacie :${req.body["code_pharmacie"]}`);
     try {
       console.log("=== MODIFICATION PHARMACIE ===");
       console.log("Body:", req.body);
@@ -204,6 +228,7 @@ class controllerPharmacie {
 
       // ✅ Validation du code pharmacie (obligatoire)
       if (!code_pharmacie) {
+        logger.info(`Code pharmacie manquant: ${req.hostname}`);
         return res.status(400).json({
           success: false,
           message: "Code pharmacie manquant",
@@ -213,6 +238,9 @@ class controllerPharmacie {
       // ✅ Parser les assurances si présentes
       let assurances = null;
       if (liste_assurance_accepte) {
+        logger.info(
+          `Pas de nouvelle(s) assurance(s) acceptée(s) => pharmacie: ${nom_pharmacie} origin: ${req.hostname}`,
+        );
         try {
           assurances = JSON.parse(liste_assurance_accepte);
           console.log("✅ Assurances parsées:", assurances);
@@ -269,6 +297,10 @@ class controllerPharmacie {
 
       console.log("=== AVANT APPEL MODÈLE ===");
 
+      const debut = new Date();
+      logger.info(
+        `Mise à jour profile... => pharmacie: ${req.code_pharmacie} date: ${new Date().toISOString}`,
+      );
       // ✅ Appeler le modèle
       const reponse = await modelPharmacie.modifierPharmacie(
         code_pharmacie,
@@ -289,8 +321,20 @@ class controllerPharmacie {
       console.log("=== RÉPONSE MODÈLE ===");
       console.log(reponse);
 
+      const duree = new Date.now() - debut;
+
+      if (reponse.success) {
+        logger.info(
+          `Profil pharmacie mis à jour avec succès =>pharmacie: ${req.code_pharmacie} temps_execution=${duree}`,
+        );
+      } else {
+        logger.info(
+          `Impossible de mettre à jour le profil de la pharmacie =>pharmacie: ${req.code_pharmacie} temps_execution=${duree}`,
+        );
+      }
       return res.status(reponse.success ? 200 : 400).json(reponse);
     } catch (error) {
+      logger.debug(`Echec Mise à jour profile => détails: ${error}`);
       console.error("❌ Erreur modifierPharmacie:", error);
       console.error("Stack:", error.stack);
       return res.status(500).json({

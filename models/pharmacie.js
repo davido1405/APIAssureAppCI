@@ -1031,6 +1031,8 @@ GROUP BY p.code_pharmacie`,
       };
     } catch (error) {
       console.log(error);
+    } finally {
+      connexion.release();
     }
   }
 

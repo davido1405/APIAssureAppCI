@@ -1,5 +1,6 @@
 const express = require("express");
 const controllerNewsletters = require("../controllers/controller.newsLetters");
+const logger = require("../logger");
 const routes = express.Router();
 
 //Abonnement aux newsLetters

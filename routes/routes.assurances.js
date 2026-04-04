@@ -1,5 +1,6 @@
 const express = require("express");
 const controllerAssurances = require("../controllers/controller.assurances");
+const logger = require("../logger");
 const routes = express.Router();
 
 /**

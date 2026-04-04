@@ -1,6 +1,7 @@
 const express = require("express");
 const modelUtilisateur = require("../models/utilisateur");
 const { messaging } = require("firebase-admin");
+const logger = require("../logger");
 
 class controllerUtilisateur {
   //Inscription utilisateur
@@ -31,6 +32,9 @@ class controllerUtilisateur {
   //Connexion utilisateur
   static async connexion(req, res) {
     const { numeroUtilisateur, codePinUtilisateur } = req.body;
+    logger.info(
+      `Tentative de connexion... => utilisateur: ${numeroUtilisateur} date: ${new Date().toISOString()} origine: ${req.hostname}`,
+    );
     const reponse = await modelUtilisateur.connexion(
       numeroUtilisateur,
       codePinUtilisateur,
@@ -41,6 +45,9 @@ class controllerUtilisateur {
   //Récupérer le profil utilisateur
   static async profilUtilisateur(req, res) {
     const { code_utilisateur } = req.body;
+    logger.info(
+      `Récupération du profil... => utilisateur: ${code_utilisateur} date: ${new Date().toISOString()} origine: ${req.hostname}`,
+    );
     const reponse = await modelUtilisateur.profilUtilisateur(code_utilisateur);
     return res.json(reponse);
   }
