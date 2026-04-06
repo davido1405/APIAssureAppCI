@@ -1,4 +1,6 @@
+const { messaging } = require("firebase-admin");
 const dataBase = require("../config/db_config");
+const logger = require("../logger");
 
 class AbonnementModel {
   // ===== RÉCUPÉRER LES FORFAITS DISPONIBLES =====
@@ -6,6 +8,7 @@ class AbonnementModel {
     const connexion = await dataBase.getConnection();
 
     try {
+      logger.debug(`Récupération des forfaits...`);
       const [forfaits] = await connexion.query(`
         SELECT 
           f.id_forfait,
@@ -28,6 +31,7 @@ class AbonnementModel {
         ORDER BY f.prix ASC
       `);
 
+      logger.debug(`Forfait récupéré avec succès`);
       // Parser les fonctionnalités JSON
       return forfaits.map((forfait) => ({
         ...forfait,
@@ -35,6 +39,15 @@ class AbonnementModel {
           ? JSON.parse(`[${forfait.fonctionnalites}]`)
           : [],
       }));
+    } catch (error) {
+      logger.error(
+        `Erreur lors de la récupération des forfaits erreur: ${error.message}`,
+      );
+      connexion.release();
+      return {
+        success: false,
+        message: "Impossible de récupérer les forfaits pour le moment",
+      };
     } finally {
       connexion.release();
     }
@@ -45,17 +58,39 @@ class AbonnementModel {
     const connexion = await dataBase.getConnection();
 
     try {
+      logger.debug(`Vérification si code_utilisateur fournit`);
+      if (!code_pharmacie) {
+        logger.debug(
+          `Tentative de récupération de l'abonnement actif sans le code_utilisateur`,
+        );
+        connexion.release();
+        return {
+          success: false,
+          message:
+            "Tentative de récupération de l'abonnement actif sans le code_utilisateur",
+        };
+      }
+      logger.debug(
+        `Vérification de l'existance de la pharmacie... => utilisateur: ${code_pharmacie}`,
+      );
       const [utilisateur_gerant] = await connexion.query(
         "SELECT code_pharmacie FROM utilisateur_gerant WHERE code_utilisateur=?",
         [code_pharmacie],
       );
 
       if (!utilisateur_gerant[0].code_pharmacie) {
+        //Je me suis trompé donc j'ai préféré laisser le nom de la variable tel quel(sinon c'est code_utilisateur qu'on récupère)
+        logger.debug(
+          `Aucune pharmacie trouvé pour utilisateur: ${code_pharmacie}`,
+        );
         return {
           success: false,
           message: "Aucune pharmacie trouvée pour ce gérant",
         };
       }
+      logger.debug(
+        `Exécution de la requette(récupération du forfait actif)... => pharmacie: ${utilisateur_gerant[0].code_pharmacie}`,
+      );
       const [rows] = await connexion.query(
         `
         SELECT 
@@ -82,6 +117,7 @@ class AbonnementModel {
       );
 
       if (rows.length === 0) {
+        logger.debug(`Aucun abonnement actif donc forfait gratuit par défaut`);
         // Pas d'abonnement actif, retourner le forfait Gratuit par défaut
         const [forfaitGratuit] = await connexion.query(`
           SELECT 
@@ -95,8 +131,15 @@ class AbonnementModel {
 
         return forfaitGratuit[0] || null;
       }
-
+      logger.debug(
+        `Fin exécution de la requette. forfait: ${rows[0].nom_forfait}`,
+      );
       return rows[0];
+    } catch (error) {
+      logger.error(
+        `Erreur lors de la récupération du forfait de la pharmacie. erreur: ${error.message}`,
+      );
+      connexion.release();
     } finally {
       connexion.release();
     }
@@ -105,8 +148,19 @@ class AbonnementModel {
   // ===== VÉRIFIER SI UNE FONCTIONNALITÉ EST DISPONIBLE =====
   static async verifierAccesFonctionnalite(code_gerant, code_fonctionnalite) {
     const connexion = await dataBase.getConnection();
+    if (!(code_gerant && code_fonctionnalite)) {
+      logger.debug(`Code gérant ou code_fonctionnalité manquant`);
+      return {
+        success: false,
+        message: "Veuillez remplir tous les champs",
+      };
+    }
 
+    logger.debug(`Vérification de l'accès à une fonctionnalité...`);
     try {
+      logger.debug(
+        `Récupération du code de la pharmacie en fonction du code gérant`,
+      );
       //Récupérer le code de la pharmacie en fonction du code du gérant
       const [pharmacie] = await connexion.query(
         "SELECT code_pharmacie FROM utilisateur_gerant WHERE code_utilisateur=?",
@@ -114,7 +168,13 @@ class AbonnementModel {
       );
 
       if (!pharmacie[0]) {
-        throw new Error("Aucune pharmacie trouvé pour cet utilisateur");
+        logger.debug(
+          `Aucune pharmacie trouvé pour cet utilisateur ${code_gerant}`,
+        );
+        return {
+          success: false,
+          message: "Aucune pharmacie trouvé",
+        };
       }
       // Récupérer l'abonnement actif
       const [abonnement] = await connexion.query(
@@ -132,20 +192,27 @@ class AbonnementModel {
 
       let id_forfait;
       if (abonnement.length === 0) {
+        logger.debug(
+          `Aucun forfait trouvé. Donc forfait gratuit retourné par défaut`,
+        );
         // Forfait gratuit par défaut
         const [forfaitGratuit] = await connexion.query(`
           SELECT id_forfait FROM forfaits WHERE nom_forfait = 'Gratuit'
         `);
         id_forfait = forfaitGratuit[0]?.id_forfait;
       } else {
+        logger.debug(`Abonnement récupéré avec succès`);
         id_forfait = abonnement[0].id_forfait;
       }
 
       if (!id_forfait) {
+        logger.debug(`Aucun forfait trouvé`);
         return { acces: false, raison: "Aucun forfait trouvé" };
       }
 
-      // Vérifier si la fonctionnalité est incluse dans le forfait
+      logger.debug(
+        `Vérification de l'accès à  la fonctionnalité... => pharmacie: ${pharmacie[0].code_pharmacie} fonctionnalité: ${code_fonctionnalite}`,
+      );
       const [fonctionnalite] = await connexion.query(
         `
         SELECT 
@@ -160,6 +227,9 @@ class AbonnementModel {
       );
 
       if (fonctionnalite.length === 0) {
+        logger.debug(
+          `Fonctionnalité: ${fonctionnalite[0].nom_fonctionnalite} non incluse dans le forfait`,
+        );
         return {
           acces: false,
           raison: "Fonctionnalité non incluse dans votre forfait",
@@ -170,9 +240,15 @@ class AbonnementModel {
 
       // Si pas de limite, accès illimité
       if (limite === null) {
+        logger.debug(
+          `Aucune limite d'utilisation => pharmacie: ${pharmacie[0].nom_pharmacie} fonctionnalite: ${fonctionnalite[0].nom_fonctionnalite}`,
+        );
         return { acces: true, limite: null, utilise: 0 };
       }
 
+      logger.debug(
+        `Vérification limite d'utilisation... => pharmacie: ${pharmacie[0].nom_pharmacie} fonctionnalite: ${fonctionnalite[0].nom_fonctionnalite}`,
+      );
       // Vérifier l'utilisation du mois en cours
       const [utilisation] = await connexion.query(
         `
@@ -190,6 +266,9 @@ class AbonnementModel {
       const nb_utilisations = utilisation[0].nb_utilisations;
 
       if (nb_utilisations >= limite) {
+        logger.debug(
+          `Dépassement des limites d'utilisation => pharmacie:${pharmacie[0].nom_pharmacie} nombre_utilisation: ${nb_utilisations} limite: ${limite} fonctionnalité: ${fonctionnalite[0].nom_fonctionnalite}`,
+        );
         return {
           acces: false,
           raison: `Limite atteinte (${limite} utilisations/mois)`,
@@ -198,11 +277,22 @@ class AbonnementModel {
         };
       }
 
+      logger.debug(
+        `Accès autorisé à la fonctionnalité => pharmacie: ${pharmacie[0].nom_pharmacie} fonctionnalité: ${fonctionnalite[0].nom_fonctionnalite} restant: ${limite - nb_utilisations}`,
+      );
       return {
         acces: true,
         limite,
         utilise: nb_utilisations,
         restant: limite - nb_utilisations,
+      };
+    } catch (error) {
+      logger.error(
+        `Erreur lors de la vérification de l'accès à la fonctionnalité: ${code_fonctionnalite} erreur: ${error.message}`,
+      );
+      connexion.release();
+      return {
+        acces: false,
       };
     } finally {
       connexion.release();
@@ -212,8 +302,17 @@ class AbonnementModel {
   // ===== ENREGISTRER UNE UTILISATION =====
   static async enregistrerUtilisation(code_pharmacie, code_fonctionnalite) {
     const connexion = await dataBase.getConnection();
-
+    logger.debug(`Enregistrement de l'utilisation d'une fonctionnalité...`);
+    if (!(code_pharmacie && code_fonctionnalite)) {
+      return {
+        success: false,
+        message: "Veuillez remplir tous les champs",
+      };
+    }
     try {
+      logger.debug(
+        `Vérification de l'existance de la fonctionnalité... => pharmacie: ${code_pharmacie} fonctionnalité: ${code_fonctionnalite}`,
+      );
       const [fonctionnalite] = await connexion.query(
         `
         SELECT id_fonctionnalite 
@@ -226,7 +325,7 @@ class AbonnementModel {
       if (fonctionnalite.length === 0) {
         return { success: false, message: "Fonctionnalité introuvable" };
       }
-
+      logger.debug(`Fonctionnalité récupéré avec succès !`);
       await connexion.query(
         `
         INSERT INTO utilisation_fonctionnalites 
@@ -235,8 +334,18 @@ class AbonnementModel {
       `,
         [code_pharmacie, fonctionnalite[0].id_fonctionnalite],
       );
-
+      logger.debug(
+        `Utilisation enrégistré => pharmacie: ${code_pharmacie} fonctionnalité: ${code_fonctionnalite} `,
+      );
       return { success: true };
+    } catch (error) {
+      logger.error(
+        `Erreur lors de l'enregistrement de l'utilisation de la fonctionnalité => erreur: ${error.message}`,
+      );
+      connexion.release();
+      return {
+        success: false,
+      };
     } finally {
       connexion.release();
     }
@@ -251,8 +360,18 @@ class AbonnementModel {
   ) {
     const connexion = await dataBase.getConnection();
 
+    if (!(code_gerant && nom_forfait && mode_paiement && reference_paiement)) {
+      return {
+        success: false,
+        message: "Veuillez remplir tous les champs",
+      };
+    }
+
     try {
       await connexion.beginTransaction();
+      logger.debug(
+        `Récuépration du code de la pharmcie à partir du code gérant...`,
+      );
 
       //Récupérer le code de la pharmacie à partir du code_utilisateur
       const [pharmacie] = await connexion.query(
@@ -261,9 +380,13 @@ class AbonnementModel {
       );
 
       if (pharmacie.length == 0) {
+        logger.debug(
+          `Aucune pharmacie trouvé pour cet utilisateur: ${code_gerant}`,
+        );
         throw new Error("Aucune pharmacie trouvée");
       }
 
+      logger.debug(`Récupération des infos des forfaits...`);
       // Récupérer les infos du forfait
       const [forfait] = await connexion.query(
         `
@@ -273,13 +396,16 @@ class AbonnementModel {
       );
 
       if (forfait.length === 0) {
+        logger.debug(`Forfait introuvable => forfait: ${nom_forfait}`);
         throw new Error("Forfait introuvable");
       }
 
+      logger.debug(`Initialisation des dates...`);
       const date_debut = new Date();
       const date_fin = new Date();
       date_fin.setDate(date_fin.getDate() + forfait[0].duree_jours);
 
+      logger.debug(`Désactivation des anciens forfaits...`);
       // Désactiver les abonnements précédents
       await connexion.query(
         `
@@ -290,6 +416,7 @@ class AbonnementModel {
         [pharmacie[0].code_pharmacie],
       );
 
+      logger.debug(`Mis à jour du nouvel abonnement`);
       // Créer le nouvel abonnement
       const [result] = await connexion.query(
         `
@@ -308,6 +435,7 @@ class AbonnementModel {
         ],
       );
 
+      logger.debug(`Enregistrement du paiement...`);
       // Enregistrer le paiement
       await connexion.query(
         `
@@ -319,6 +447,7 @@ class AbonnementModel {
       );
 
       await connexion.commit();
+      logger.debug(`Souscription éffectuée avec succès !`);
 
       return {
         success: true,
@@ -328,7 +457,9 @@ class AbonnementModel {
       };
     } catch (error) {
       await connexion.rollback();
+      connexion.release();
       console.error("Erreur souscrireForfait:", error);
+      logger.debug(`Erreur lors de la souscription erreur: ${error.message}`);
       return {
         success: false,
         message: "Erreur lors de la souscription",
@@ -343,7 +474,17 @@ class AbonnementModel {
   static async historiqueAbonnements(code_pharmacie) {
     const connexion = await dataBase.getConnection();
 
+    if (!code_pharmacie) {
+      return {
+        success: false,
+        message: "Veuillez remplir tout les champs",
+      };
+    }
+    logger.debug(
+      `Récupération de l'historique d'abonnement... =>pharmacie: ${code_pharmacie}`,
+    );
     try {
+      logger.debug(`Exécution de la requette...`);
       const [rows] = await connexion.query(
         `
         SELECT 
@@ -363,8 +504,19 @@ class AbonnementModel {
       `,
         [code_pharmacie],
       );
+      logger.debug(`Historique récupéré avec succès !`);
 
       return rows;
+    } catch (error) {
+      logger.error(
+        `Erreur s'est produite lors de la récupération de l'historique d'abonnement erreur: ${error.message}`,
+      );
+      connexion.release();
+      return {
+        success: false,
+        message:
+          "Impossible de récupérer l'historique d'abonnement pour le moment",
+      };
     } finally {
       connexion.release();
     }

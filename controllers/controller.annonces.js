@@ -101,7 +101,6 @@ class controllerAnnonces {
         });
       }
 
-      logger.info("${code_gerant} tente de supprimer un annonce");
       const resultat = await modelAnnonces.supprimerAnnonce(
         id_annonce,
         code_gerant,

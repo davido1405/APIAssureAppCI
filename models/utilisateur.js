@@ -475,7 +475,7 @@ class utilisateur {
       //Vérifier l'existance de l'utilisateur
 
       logger.debug(
-        `Vérification existance utilisateur... utilisateur: ${code_utilisateur}`,
+        `Vérification existance utilisateur... => utilisateur: ${code_utilisateur}`,
       );
       const verif1 = await connexion.query(
         "SELECT code_utilisateur FROM utilisateurs WHERE code_utilisateur=?",
