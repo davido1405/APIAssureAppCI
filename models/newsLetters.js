@@ -13,32 +13,39 @@ class NewsLetters {
       };
     }
     const connexion = await dataBase.getConnection();
+    try {
+      logger.debug(
+        `Exécution de la requête pour récupération des abonnements...`,
+      );
+      const requete = await connexion.query(
+        `SELECT n.id_newsletter,n.date_abonnement,p.code_pharmacie,p.nom_pharmacie,p.numeros_pharmacie,a.latitude,a.longitude,a.adresse_fournit,p.email_pharmacie,sp.libelle_statut as statut_pharmacie,sn.libelle_statut as statut_abonnement FROM newsletter as n INNER JOIN pharmacie as p ON p.code_pharmacie=n.code_pharmacie INNER JOIN adresse_pharmacie as a ON a.code_pharmacie=p.code_pharmacie INNER JOIN statut as sp ON sp.id_statut=p.id_statut INNER JOIN statut as sn ON sn.id_statut=n.id_statut WHERE n.code_utilisateur=?`,
+        [codeUtilisateur],
+      );
+      const abonnements = requete[0];
+      logger.debug(`Fin d'exécution de la requête`);
+      if (!abonnements || abonnements.length == 0) {
+        logger.debug(`Aucun abonnement trouvé`);
+        return {
+          success: false,
+          message: "Vous avez aucun abonnement en cours",
+        };
+      }
 
-    logger.debug(
-      `Exécution de la requête pour récupération des abonnements...`,
-    );
-    const requete = await connexion.query(
-      `SELECT n.id_newsletter,n.date_abonnement,p.code_pharmacie,p.nom_pharmacie,p.numeros_pharmacie,a.latitude,a.longitude,a.adresse_fournit,p.email_pharmacie,sp.libelle_statut as statut_pharmacie,sn.libelle_statut as statut_abonnement FROM newsletter as n INNER JOIN pharmacie as p ON p.code_pharmacie=n.code_pharmacie INNER JOIN adresse_pharmacie as a ON a.code_pharmacie=p.code_pharmacie INNER JOIN statut as sp ON sp.id_statut=p.id_statut INNER JOIN statut as sn ON sn.id_statut=n.id_statut WHERE n.code_utilisateur=?`,
-      [codeUtilisateur],
-    );
-    const abonnements = requete[0];
-    logger.debug(`Fin d'exécution de la requête`);
-    if (!abonnements || abonnements.length == 0) {
-      logger.debug(`Aucun abonnement trouvé`);
+      logger.debug(`Liste des abonnements récupéré avec succès`);
       return {
-        success: false,
-        message: "Vous avez aucun abonnement en cours",
+        success: true,
+        message: "Liste de vos abonnements Newsletters",
+        data: abonnements,
       };
+    } catch (error) {
+      logger.error(
+        `Une erreur s'est produite lors de la récupération de la liste des abonnement de l'utilisateur: ${codeUtilisateur}`,
+      );
+      connexion.release();
+    } finally {
+      connexion.release();
     }
-
-    logger.debug(`Liste des abonnements récupéré avec succès`);
-    return {
-      success: true,
-      message: "Liste de vos abonnements Newsletters",
-      data: abonnements,
-    };
   }
-
   //Souscrir à une newsletters
   static async sabonner(codePharmacie, codeUtilisateur) {
     logger.debug(`Abonnement à une pharmacie`);
@@ -145,7 +152,9 @@ class NewsLetters {
         `Erreur lors de l'abonnement à cette pharmcie erreur: ${error.message}`,
       );
       console.log(error);
+
       await connexion.rollback();
+      connexion.release();
 
       return {
         success: false,
@@ -233,6 +242,7 @@ class NewsLetters {
         `Erreur lors de la suppression de l'abonnement. utilisateur: ${codeUtilisateur} pharmacie: ${codePharmacie}`,
       );
       console.log(error);
+      connexion.release();
       return {
         success: false,
         message: "Impossible de supprimer votre abonnement réesayez plus tard",
