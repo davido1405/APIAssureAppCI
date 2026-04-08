@@ -24,7 +24,6 @@
     "helmet": "^8.1.0",
     "json-web-token": "^3.2.0",
     "multer": "^2.1.0",
-    "multer-storage-cloudinary": "^4.0.0",
     "mysql2": "^3.17.0",
     "nodemon": "^3.1.11",
     "prom-client": "^15.1.3",
