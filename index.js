@@ -57,6 +57,14 @@ app.use((req, res, next) => {
 
   next();
 });
+// Route de santé pour le monitor
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    status: "ok",
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+  });
+});
 
 app.use("/api", routes);
 
