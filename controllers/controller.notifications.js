@@ -32,9 +32,8 @@ class controllerNotification {
       return res.status(statusCode).json(resultat);
     } catch (error) {
       logger.error(
-        `Erreur consultation notification => utilisateur: ${code_utilisateur} erreur: ${error.message}`,
+        `Erreur constroller.notifications => LireNotification erreur: ${error.message}`,
       );
-      console.error("❌ Erreur controller:", error);
       return res.status(500).json({
         success: false,
         message: "Erreur serveur",
@@ -72,9 +71,8 @@ class controllerNotification {
       return res.status(statusCode).json(resultat);
     } catch (error) {
       logger.error(
-        `Erreur lors de la récupération des notifications utilisateur: ${code_utilisateur} erreur: ${error.message}`,
+        `Erreur controller.notifications => getToutesLesNotifications erreur: ${error.message}`,
       );
-      console.error("❌ Erreur controller:", error);
       return res.status(500).json({
         success: false,
         message: "Erreur serveur",
@@ -111,7 +109,7 @@ class controllerNotification {
       return res.status(statusCode).json(resultat);
     } catch (error) {
       logger.error(
-        `Erreur de suppression des notifications erreur: ${error.message}`,
+        `Erreur controller.notifications => supprimerNotification erreur: ${error.message}`,
       );
       console.error("❌ Erreur controller:", error);
       return res.status(500).json({

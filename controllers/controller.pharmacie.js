@@ -10,34 +10,58 @@ const { error } = require("winston");
 class controllerPharmacie {
   //Récupérer le profile de la pharmacie
   static async profilPharmacie(req, res) {
-    const { code_gerant } = req.body;
-    const reponse = await modelPharmacie.profilPharmacie(code_gerant);
-    return res.json(reponse);
+    try {
+      const { code_gerant } = req.body;
+      const reponse = await modelPharmacie.profilPharmacie(code_gerant);
+      return res.json(reponse);
+    } catch (error) {
+      logger.error(
+        `Erreur controller.pharmacie => profilPharmacie erreur: ${error.message}`,
+      );
+    }
   }
   //Ajouter une assurance à la liste d'assurance acceptée
   static async ajouterAssurance(req, res) {
-    const { codePharmacie, liste_assurance } = req.body;
-    const reponse = await modelPharmacie.ajouterAssurance(
-      codePharmacie,
-      liste_assurance,
-    );
-    return res.json(reponse);
+    try {
+      const { codePharmacie, liste_assurance } = req.body;
+      const reponse = await modelPharmacie.ajouterAssurance(
+        codePharmacie,
+        liste_assurance,
+      );
+      return res.json(reponse);
+    } catch (error) {
+      logger.error(
+        `Erreur controller.pharmacie => ajouterAssurance erreur: ${error.message}`,
+      );
+    }
   }
   //Rechercher une pharmacie
   static async rechercherPharmacie(req, res) {
-    const { terme_saisi, longitude, latitude } = req.query;
-    const reponse = await modelPharmacie.rechercherPharmacie(
-      terme_saisi,
-      longitude,
-      latitude,
-    );
-    return res.json(reponse);
+    try {
+      const { terme_saisi, longitude, latitude } = req.query;
+      const reponse = await modelPharmacie.rechercherPharmacie(
+        terme_saisi,
+        longitude,
+        latitude,
+      );
+      return res.json(reponse);
+    } catch (error) {
+      logger.error(
+        `Erreur controller.pharmacie => rechercherPharmacie erreur: ${error.message}`,
+      );
+    }
   }
   //Récupérer toutes les pharmacies
   static async toutePharmacies(req, res) {
-    const { limits } = req.params;
-    const reponse = await modelPharmacie.toutePharmacies(limits);
-    return res.json(reponse);
+    try {
+      const { limits } = req.params;
+      const reponse = await modelPharmacie.toutePharmacies(limits);
+      return res.json(reponse);
+    } catch (error) {
+      logger.error(
+        `Erreur controller.pharmacie => toutePharmacie erreur: ${error.message}`,
+      );
+    }
   }
 
   //Ajouter une pharmacie
@@ -189,11 +213,9 @@ class controllerPharmacie {
 
       return res.status(reponse.success ? 201 : 400).json(reponse);
     } catch (error) {
-      logger.info(
-        `Echec ajout de nouvelle pharmacie => pharmacie: ${nom_pharmacie} origine: ${req.hostname}`,
+      logger.error(
+        `Erreur controller.pharmacie => ajouterPharmacie erreur: ${error.message}`,
       );
-      console.error("❌ Erreur ajouterPharmacie:", error);
-      console.error("Stack:", error.stack);
       return res.status(500).json({
         success: false,
         message: "Erreur serveur",
@@ -205,7 +227,6 @@ class controllerPharmacie {
   //Mettre à jour infos pharmacie
 
   static async modifierPharmacie(req, res) {
-    logger.debug(`Mise à jour profil pharmacie :${req.body["code_pharmacie"]}`);
     try {
       console.log("=== MODIFICATION PHARMACIE ===");
       console.log("Body:", req.body);
@@ -334,9 +355,9 @@ class controllerPharmacie {
       }
       return res.status(reponse.success ? 200 : 400).json(reponse);
     } catch (error) {
-      logger.debug(`Echec Mise à jour profile => détails: ${error}`);
-      console.error("❌ Erreur modifierPharmacie:", error);
-      console.error("Stack:", error.stack);
+      logger.error(
+        `Erreur controller.pharmacie => modifierPharmacie erreur: ${error.message}`,
+      );
       return res.status(500).json({
         success: false,
         message: "Erreur serveur",
@@ -384,7 +405,9 @@ class controllerPharmacie {
         });
       }
     } catch (error) {
-      console.log("Erreur recupererStatistiques:", error);
+      logger.error(
+        `Erreur controller.pharmacie => recupererStatistiques erreur: ${error.message}`,
+      );
       return res.status(500).json({
         success: false,
         message: "Une erreur s'est produite côté serveur",
@@ -429,7 +452,9 @@ class controllerPharmacie {
       const statusCode = resultat.success ? 200 : 400;
       return res.status(statusCode).json(resultat);
     } catch (error) {
-      console.error("❌ Erreur controller:", error);
+      logger.error(
+        `Erreur controller.pharmacie => mettreAJourStatutGarde erreur: ${error.message}`,
+      );
       return res.status(500).json({
         success: false,
         message: "Erreur serveur",

@@ -1,8 +1,11 @@
 const winston = require("winston");
+const { Logtail } = require("@logtail/node");
+const { LogtailTransport } = require("@logtail/winston");
 const { combine, timestamp, printf, colorize, align } = winston.format;
 
-//Créer le loger de base
+const logtail = new Logtail(process.env.LOGTAIL_TOKEN);
 
+//Créer le logger de base
 const logger = winston.createLogger({
   //Le niveau des log par defaut
   level: process.env.LOG_LEVEL || "debug",
@@ -20,12 +23,13 @@ const logger = winston.createLogger({
       filename: "./Logs/errors.log",
       level: "error",
     }),
-    new winston.transports.File({ filename: "./Logs/http.log", level: "http" }),
     new winston.transports.File({
       filename: "./Logs/debugs.log",
       level: "debug",
     }),
+    new winston.transports.File({ filename: "./Logs/http.log", level: "http" }),
     new winston.transports.File({ filename: "./Logs/app-logs.log" }),
+    new LogtailTransport(logtail),
     new winston.transports.Console(),
   ],
 });

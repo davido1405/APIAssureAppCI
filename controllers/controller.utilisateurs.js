@@ -31,67 +31,91 @@ class controllerUtilisateur {
 
   //Connexion utilisateur
   static async connexion(req, res) {
-    const { numeroUtilisateur, codePinUtilisateur } = req.body;
-    logger.info(
-      `Tentative de connexion... => utilisateur: ${numeroUtilisateur} date: ${new Date().toISOString()} origine: ${req.hostname}`,
-    );
-    const reponse = await modelUtilisateur.connexion(
-      numeroUtilisateur,
-      codePinUtilisateur,
-    );
-    return res.json(reponse);
+    try {
+      const { numeroUtilisateur, codePinUtilisateur } = req.body;
+      const reponse = await modelUtilisateur.connexion(
+        numeroUtilisateur,
+        codePinUtilisateur,
+      );
+      return res.json(reponse);
+    } catch (error) {
+      logger.error(
+        `Erreur controller.utilisateurs => connexion erreur: ${error.message}`,
+      );
+    }
   }
 
   //Récupérer le profil utilisateur
   static async profilUtilisateur(req, res) {
-    const { code_utilisateur } = req.body;
-    logger.info(
-      `Récupération du profil... => utilisateur: ${code_utilisateur} date: ${new Date().toISOString()} origine: ${req.hostname}`,
-    );
-    const reponse = await modelUtilisateur.profilUtilisateur(code_utilisateur);
-    return res.json(reponse);
+    try {
+      const { code_utilisateur } = req.body;
+      const reponse =
+        await modelUtilisateur.profilUtilisateur(code_utilisateur);
+      return res.json(reponse);
+    } catch (error) {
+      logger.error(
+        `Erreur controller.utilisateurs => prodilUtilisateur erreur: ${error.message}`,
+      );
+    }
   }
 
   //Réinitialiser le mot de passe
   static async recoverPassword(req, res) {
-    const { numeroUtilisateur } = req.body;
-    const reponse = await modelUtilisateur.recoverPassword(numeroUtilisateur);
-    return res.json(reponse);
+    try {
+      const { numeroUtilisateur } = req.body;
+      const reponse = await modelUtilisateur.recoverPassword(numeroUtilisateur);
+      return res.json(reponse);
+    } catch (error) {
+      logger.error(
+        `Erreur controller.utilisateurs => recoverPassword erreur: ${error.message}`,
+      );
+    }
   }
 
   //Ajouter assurance utiliser
   static async ajouterAssurance(req, res) {
-    const { codeUtilisateur, nom_assurance } = req.body;
-    const reponse = await modelUtilisateur.ajouterAssurance(
-      codeUtilisateur,
-      nom_assurance,
-    );
-
-    return res.json(reponse);
+    try {
+      const { codeUtilisateur, nom_assurance } = req.body;
+      const reponse = await modelUtilisateur.ajouterAssurance(
+        codeUtilisateur,
+        nom_assurance,
+      );
+      return res.json(reponse);
+    } catch (error) {
+      logger.error(
+        `Erreur controller.utilisateurs => ajouterAssurance erreur: ${error.message}`,
+      );
+    }
   }
 
   //Envoyer localisation
   static async envoyerLocalisation(req, res) {
-    const [code_utilisateur, latitude, longitude] = req.path;
-    if (!(code_utilisateur || latitude || longitude)) {
-      return res.status(400).json({
-        success: false,
-        message: "Veuillez vérifier tous les champs",
-      });
-    }
-    const reponse = await modelUtilisateur.envoyerLocalisation(
-      code_utilisateur,
-      latitude,
-      longitude,
-    );
+    try {
+      const [code_utilisateur, latitude, longitude] = req.path;
+      if (!(code_utilisateur || latitude || longitude)) {
+        return res.status(400).json({
+          success: false,
+          message: "Veuillez vérifier tous les champs",
+        });
+      }
+      const reponse = await modelUtilisateur.envoyerLocalisation(
+        code_utilisateur,
+        latitude,
+        longitude,
+      );
 
-    if (reponse) {
-      return res.status(200).json(reponse);
-    } else {
-      return res.status(500).json({
-        success: false,
-        message: "Erreur server",
-      });
+      if (reponse) {
+        return res.status(200).json(reponse);
+      } else {
+        return res.status(500).json({
+          success: false,
+          message: "Erreur server",
+        });
+      }
+    } catch (error) {
+      logger.error(
+        `Erreur controller.utilisateurs => envoyerLocalisation erreur: ${error.message}`,
+      );
     }
   }
 
@@ -117,11 +141,9 @@ class controllerUtilisateur {
         return res.status(400).json(resultat);
       }
     } catch (error) {
-      console.log("Une erreur s'est produite: ", error);
-      return res.status(500).json({
-        success: false,
-        message: "Erreur serveur lors de l'enregistrement du token",
-      });
+      logger.error(
+        `Erreur controller.utilisateurs => envoyerFCMToken erreur: ${error.message}`,
+      );
     }
   }
 }

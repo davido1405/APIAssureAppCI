@@ -361,6 +361,9 @@ class AbonnementModel {
     const connexion = await dataBase.getConnection();
 
     if (!(code_gerant && nom_forfait && mode_paiement && reference_paiement)) {
+      logger.debug(
+        `Tentative de souscription à un forfait avec un ou plusieur champ(s) manquant`,
+      );
       return {
         success: false,
         message: "Veuillez remplir tous les champs",
@@ -397,7 +400,10 @@ class AbonnementModel {
 
       if (forfait.length === 0) {
         logger.debug(`Forfait introuvable => forfait: ${nom_forfait}`);
-        throw new Error("Forfait introuvable");
+        return {
+          success: false,
+          message: "Forfait non pris en charge",
+        };
       }
 
       logger.debug(`Initialisation des dates...`);
@@ -457,9 +463,8 @@ class AbonnementModel {
       };
     } catch (error) {
       await connexion.rollback();
+      logger.error(`Erreur lors de la souscription erreur: ${error.message}`);
       connexion.release();
-      console.error("Erreur souscrireForfait:", error);
-      logger.debug(`Erreur lors de la souscription erreur: ${error.message}`);
       return {
         success: false,
         message: "Erreur lors de la souscription",
@@ -509,7 +514,7 @@ class AbonnementModel {
       return rows;
     } catch (error) {
       logger.error(
-        `Erreur s'est produite lors de la récupération de l'historique d'abonnement erreur: ${error.message}`,
+        `Erreur lors de la récupération de l'historique d'abonnement => pharmacie: ${code_pharmacie} erreur: ${error.message}`,
       );
       connexion.release();
       return {

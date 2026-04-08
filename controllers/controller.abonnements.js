@@ -1,3 +1,4 @@
+const logger = require("../logger");
 const AbonnementModel = require("../models/abonnements");
 
 class AbonnementController {
@@ -11,7 +12,9 @@ class AbonnementController {
         data: forfaits,
       });
     } catch (error) {
-      console.error("Erreur recupererForfaits:", error);
+      logger.error(
+        `Erreur controller.abonnements => recupererForfaits erreur: ${error.message}`,
+      );
       return res.status(500).json({
         success: false,
         message: "Erreur serveur",
@@ -32,7 +35,9 @@ class AbonnementController {
         data: abonnement,
       });
     } catch (error) {
-      console.error("Erreur recupererAbonnementActif:", error);
+      logger.error(
+        `Erreur controller.abonnements => recupererAbonnementActif erreur: ${error.message}`,
+      );
       return res.status(500).json({
         success: false,
         message: "Erreur serveur",
@@ -55,7 +60,9 @@ class AbonnementController {
         data: resultat,
       });
     } catch (error) {
-      console.error("Erreur verifierAccesFonctionnalite:", error);
+      logger.error(
+        `Erreur controller.abonnements => verifierAccesFonctionnalite erreur: ${error.message}`,
+      );
       return res.status(500).json({
         success: false,
         message: "Erreur serveur",
@@ -85,7 +92,9 @@ class AbonnementController {
 
       return res.status(resultat.success ? 201 : 400).json(resultat);
     } catch (error) {
-      console.error("Erreur souscrireForfait:", error);
+      logger.error(
+        `Erreur controller.abonnements => souscrireForfait erreur: ${error.message}`,
+      );
       return res.status(500).json({
         success: false,
         message: "Erreur serveur",
@@ -106,7 +115,9 @@ class AbonnementController {
         data: historique,
       });
     } catch (error) {
-      console.error("Erreur historiqueAbonnements:", error);
+      logger.error(
+        `Erreur controller.abonnements => historiqueAbonnements erreur: ${error.message}`,
+      );
       return res.status(500).json({
         success: false,
         message: "Erreur serveur",

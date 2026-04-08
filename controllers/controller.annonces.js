@@ -34,7 +34,9 @@ class controllerAnnonces {
       const statusCode = resultat.success ? 200 : 400;
       return res.status(statusCode).json(resultat);
     } catch (error) {
-      console.error("❌ Erreur controller:", error);
+      logger.error(
+        `Erreur controller.annonces => envoyerAnnonce erreur: ${error.message}`,
+      );
       return res.status(500).json({
         success: false,
         message: "Erreur serveur",
@@ -58,7 +60,9 @@ class controllerAnnonces {
       const statusCode = resultat.success ? 200 : 400;
       return res.status(statusCode).json(resultat);
     } catch (error) {
-      console.error("❌ Erreur controller:", error);
+      logger.error(
+        `Erreur controller.annonces => getAnnoncesParPharmacie erreur: ${error.message}`,
+      );
       return res.status(500).json({
         success: false,
         message: "Erreur serveur",
@@ -78,7 +82,9 @@ class controllerAnnonces {
       const statusCode = resultat.success ? 200 : 400;
       return res.status(statusCode).json(resultat);
     } catch (error) {
-      console.error("❌ Erreur controller:", error);
+      logger.error(
+        `Erreur controller.annonces => getToutesLesAnnonces erreur: ${error.message}`,
+      );
       return res.status(500).json({
         success: false,
         message: "Erreur serveur",
@@ -109,7 +115,9 @@ class controllerAnnonces {
       const statusCode = resultat.success ? 200 : 400;
       return res.status(statusCode).json(resultat);
     } catch (error) {
-      console.error("❌ Erreur controller:", error);
+      logger.error(
+        `Erreur controller.annonces => supprimerAnnonce erreur: ${error.message}`,
+      );
       return res.status(500).json({
         success: false,
         message: "Erreur serveur",
