@@ -1,10 +1,9 @@
 // config/firebase.config.js
 
 const admin = require("firebase-admin");
-const path = require("path");
 
 // Chemin vers votre clé privée
-const serviceAccountPath = path.join(__dirname, "../serviceAccountKey.json");
+const serviceAccountPath = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 
 let serviceAccount;
 
