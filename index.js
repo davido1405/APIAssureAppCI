@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const express = require("express");
 const cors = require("cors");
 const rateLimit = require("express-rate-limit");
@@ -7,7 +9,6 @@ const promClient = require("prom-client");
 // Collecter CPU, RAM automatiquement
 promClient.collectDefaultMetrics();
 
-require("dotenv").config();
 const routes = require("./routes/api");
 const expressJsdocSwagger = require("express-jsdoc-swagger");
 
