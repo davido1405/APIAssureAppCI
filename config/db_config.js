@@ -5,6 +5,7 @@ const connexion = mysql.createPool({
   user: process.env.MYSQLUSER,
   password: process.env.MYSQL_ROOT_PASSWORD,
   database: process.env.MYSQL_DATABASE,
+  port: process.env.MYSQLPORT, // ⚠️ Manq
 
   dateStrings: true,
   timezone: "+00:00",
@@ -15,6 +16,21 @@ const connexion = mysql.createPool({
   queueLimit: 0, // Pas de limite de queue
   enableKeepAlive: true, // Garder connexions actives
   keepAliveInitialDelay: 0,
+
+  // ⚠️ Requis sur Railway
+  ssl: {
+    rejectUnauthorized: false,
+  },
+});
+
+// Tester la connexion au démarrage
+connexion.getConnection((err, connection) => {
+  if (err) {
+    console.error("❌ Erreur connexion MySQL :", err.message);
+  } else {
+    console.log("✅ MySQL connecté avec succès");
+    connection.release();
+  }
 });
 
 module.exports = connexion.promise();
