@@ -68,7 +68,7 @@ app.get("/health", (req, res) => {
 
 app.use("/api", routes);
 
-app.listen(process.env.PORT || 4000, () => {
+app.listen(process.env.PORT || 4000, "0.0.0.0", () => {
   console.log("Server lancé sur: http://localhost:4000");
   console.log("Documentation sur: http://localhost:4000/docs");
   logger.info(`Serveur démaré à ${new Date().toISOString()}`);
