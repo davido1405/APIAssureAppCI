@@ -21,6 +21,9 @@ const connexion = mysql.createPool({
   ssl: {
     rejectUnauthorized: false,
   },
+
+  // ✅ Désactiver only_full_group_by
+  multipleStatements: true,
 });
 
 // Tester la connexion au démarrage
