@@ -225,7 +225,18 @@ INNER JOIN statut as s ON s.id_statut = p.id_statut
 LEFT JOIN pharmacie_assurance as pa ON pa.code_pharmacie = p.code_pharmacie
 LEFT JOIN assurances as ass ON ass.id_assurance = pa.id_assurance
 LEFT JOIN villes as v ON v.id_ville=a.id_ville
-GROUP BY p.code_pharmacie`,
+GROUP BY 
+  p.code_pharmacie,
+  p.nom_pharmacie,
+  p.photo_pharmacie,
+  p.numeros_pharmacie,
+  p.email_pharmacie,
+  p.est_de_garde,
+  a.longitude,
+  a.latitude,
+  a.adresse_fournit,
+  v.nom_ville,
+  s.libelle_statut`,
       );
 
       const Resultatpharmacies = requete[0];
@@ -313,7 +324,18 @@ INNER JOIN statut as s ON s.id_statut = p.id_statut
 LEFT JOIN pharmacie_assurance as pa ON pa.code_pharmacie = p.code_pharmacie
 LEFT JOIN assurances as ass ON ass.id_assurance = pa.id_assurance
 LEFT JOIN villes as v ON v.id_ville=a.id_ville
-GROUP BY p.code_pharmacie`,
+GROUP BY 
+  p.code_pharmacie,
+  p.nom_pharmacie,
+  p.photo_pharmacie,
+  p.numeros_pharmacie,
+  p.email_pharmacie,
+  p.est_de_garde,
+  a.longitude,
+  a.latitude,
+  a.adresse_fournit,
+  v.nom_ville,
+  s.libelle_statut`,
       );
 
       const Resultatpharmacies = requete[0];
