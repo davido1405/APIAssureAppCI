@@ -19,7 +19,7 @@ routes.get(
  * POST /api/pharmacie/profilpharmacie
  * @summary Récupérer le profil de la pharmacie
  * @tags Pharmacie
- * @param {string} request.body.required -Code l'utilisateur qui gère la pharmacie dont on veut récupérer le profil
+ * @param {string} request.body.required -Code du gérant (code_gerant) dont on veut le profil
  * @return {object} 201 - Profil pharmacie récupérées avec succès
  * @return {object} 400 - Données invalides
  * @return {object} 500 - Erreur serveur
@@ -32,7 +32,7 @@ routes.post("/profilpharmacie", (req, res) => {
 /**
  * @typedef {object} informationAjoutAssurance
  * @property {string} codePharmacie.required - Code de la pharmacie qui ajoute une assurance
- * @property {Array[]} liste_assurance.required - Nom de l'assurance à ajouter
+ * @property {array<string>} liste_assurance.required - Nom de l'assurance à ajouter
  */
 /**
  * POST /api/pharmacie/ajouterassurance
@@ -50,7 +50,7 @@ routes.post("/ajouterassurance", (req, res) => {
 //Enregistrer une pharmacie
 /**
  * @typedef {object} infosAjouterPharmacie -Informations nécéssaire à ajouter une pharmacie
- * @property {string} code_gerant.required - Code de l'utilisateur qui gère la pharmacie - application/x-www-form-urlencoded
+ * @property {string} code_pharmacie.required - Code de la pharmacie à modifier (obligatoire) - multipart/form-data
  * @property {string} nom_pharmacie.required - Nom de la pharmacie à enregistrer - application/x-www-form-urlencoded
  * @property {string} numero_pharmacie.required - Numéros de la pharmacie à enregistrer - application/x-www-form-urlencoded
  * @property {string} horaires_en_semaine.required - Les horaires d'ouverture de la pharmacie en semaine - application/x-www-form-urlencoded
@@ -80,7 +80,7 @@ routes.post("/ajouterPharmacie", upload.single("photo"), (req, res) => {
 //Modifier les informations d'une pharmacie
 /**
  * @typedef {object} infosMajPharmacie -Informations nécéssaire à ajouter une pharmacie
- * @property {string} code_gerant.required - Code de l'utilisateur qui gère la pharmacie - application/x-www-form-urlencoded
+ * @property {string} code_pharmacie.required - Code de la pharmacie à modifier (obligatoire) - multipart/form-data
  * @property {string} nom_pharmacie - Nom de la pharmacie à enregistrer - application/x-www-form-urlencoded
  * @property {string} numero_pharmacie - Numéros de la pharmacie à enregistrer - application/x-www-form-urlencoded
  * @property {string} horaires_en_semaine - Les horaires d'ouverture de la pharmacie en semaine - application/x-www-form-urlencoded
@@ -110,13 +110,17 @@ routes.put(
 );
 
 /**
+ * @typedef {object} infosModifierStatutGarde
+ * @property {string} code_pharmacie.required - Code de la pharmacie
+ * @property {boolean} est_de_garde.required - Nouveau statut de garde
+ */
+/**
  * PUT /api/pharmacie/modifierstatutgarde
- * @summary Mettre à jour les informations d'une pharmacie
+ * @summary Mettre à jour le statut de garde d'une pharmacie
  * @tags Pharmacie
- * @param {string} code_pharmacie.required - Informations à mettre à jour en BD
- * @param {string} est_de_garde.required - Informations à mettre à jour en BD
- * @return {object} 201 - Statut de garde mis à jour avec succès
- * @return {object} 400 - Impossible d'enregistrer la pharmacie
+ * @param {infosModifierStatutGarde} request.body.required - Corps JSON { code_pharmacie, est_de_garde }
+ * @return {object} 200 - Statut de garde mis à jour avec succès
+ * @return {object} 400 - Impossible de mettre à jour le statut
  * @return {object} 500 - Erreur serveur
  */
 routes.put(
@@ -127,15 +131,15 @@ routes.put(
 //Rechercher une pharmacie
 /**
  * @typedef {object} infosRecherchePharmacie
- * @property {string} terme_saisi.required -Nom de l'assurance recherchée
- * @property {number} longitude -Longitude de la position de l'utilisateur
- * @property {number} latitude -Latitude de la position de l'utilisateur
+ * @property {string} terme_saisi.query -Terme recherché (nom, assurance acceptée ou adresse)
+ * @property {number} longitude.query -Longitude de la position de l'utilisateur
+ * @property {number} latitude.query -Latitude de la position de l'utilisateur
  */
 /**
  * GET /api/pharmacie/rechercher
  * @summary Rechercher  des pharmacies
  * @tags Pharmacie
- * @param {infosRecherchePharmacie} request.path.required -Les informations nécessaire à la récupération des
+ * @param {infosRecherchePharmacie} request.query -Les informations nécessaire à la recherche
  * @return {object} 201 - Pharmacie récupérées avec succès
  * @return {object} 400 - Données invalides
  * @return {object} 500 - Erreur serveur
@@ -160,16 +164,13 @@ routes.get("/statistiques", (req, res) => {
 //toute les pharmacies
 /**
  * @typedef {object} infosToutePharmacie
- * @property {number} limits -Limiter le nombre de résultat pour plus d'éfficacité
- * @property {number} longitude -Longitude de la position de l'utilisateur
- * @property {number} latitude -Latitude de la position de l'utilisateur
- * @property {string} adresse_utilisateur.required -Adresse fourni par l'utilisateur à l'inscription
+ * @property {number} limits.query -Limiter le nombre de résultat pour plus d'éfficacité
  */
 /**
  * GET /api/pharmacie
  * @summary Récupérer toutes les pharmacies
  * @tags Pharmacie
- * @param {infosToutePharmacie} request.path.required -Les informations nécessaire à la récupération des
+ * @param {infosToutePharmacie} request.query -Les informations nécessaire à la récupération des pharmacies
  * @return {object} 201 - Pharmacie récupérées avec succès
  * @return {object} 400 - Données invalides
  * @return {object} 500 - Erreur serveur

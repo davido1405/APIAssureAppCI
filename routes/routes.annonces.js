@@ -52,7 +52,7 @@ routes.post("/envoyer", controllerAnnonce.envoyerAnnonce);
  * GET /api/annonces/pharmacie
  * @summary Récupérer les annonces d'une pharmacie spécifique
  * @tags Annonces
- * @param {string} code_pharmacie.path.required - Code de la pharmacie
+ * @param {string} code_gerant.query.required - Code du gérant (filter par pharmacie)
  * @param {number} limit.query - Nombre max d'annonces à retourner (défaut: 10)
  * @return {object} 200 - Liste des annonces
  * @return {object} 400 - Erreur

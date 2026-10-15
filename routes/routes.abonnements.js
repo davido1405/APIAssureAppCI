@@ -62,7 +62,7 @@ routes.post(
 routes.post("/souscrire", AbonnementController.souscrireForfait);
 
 /**
- * GET /api/abonnements/historique
+ * GET /api/abonnements/historique/{code_pharmacie}
  * @summary Récupérer l'historique de tous les forfaits souscrit
  * @tags Abonnements
  * @return {object} 200 - Souscription éffectué avec succès !
