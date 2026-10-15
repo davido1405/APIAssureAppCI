@@ -18,6 +18,7 @@ class controllerPharmacie {
       logger.error(
         `Erreur controller.pharmacie => profilPharmacie erreur: ${error.message}`,
       );
+      return res.status(500).json({ success: false, message: "Erreur serveur" });
     }
   }
   //Ajouter une assurance à la liste d'assurance acceptée
@@ -33,6 +34,7 @@ class controllerPharmacie {
       logger.error(
         `Erreur controller.pharmacie => ajouterAssurance erreur: ${error.message}`,
       );
+      return res.status(500).json({ success: false, message: "Erreur serveur" });
     }
   }
   //Rechercher une pharmacie
@@ -49,18 +51,26 @@ class controllerPharmacie {
       logger.error(
         `Erreur controller.pharmacie => rechercherPharmacie erreur: ${error.message}`,
       );
+      return res.status(500).json({ success: false, message: "Erreur serveur" });
     }
   }
   //Récupérer toutes les pharmacies
   static async toutePharmacies(req, res) {
     try {
-      const { limits } = req.params;
+      let limits;
+      if (req.query && req.query.limits !== undefined) {
+        const parsed = parseInt(req.query.limits, 10);
+        if (Number.isInteger(parsed) && parsed > 0) {
+          limits = parsed;
+        }
+      }
       const reponse = await modelPharmacie.toutePharmacies(limits);
       return res.json(reponse);
     } catch (error) {
       logger.error(
         `Erreur controller.pharmacie => toutePharmacie erreur: ${error.message}`,
       );
+      return res.status(500).json({ success: false, message: "Erreur serveur" });
     }
   }
 
@@ -68,12 +78,7 @@ class controllerPharmacie {
   static async ajouterPharmacie(req, res) {
     try {
       console.log("=== DONNÉES REÇUES ===");
-      console.log("Body:", req.body);
-      console.log("File:", req.file);
-
-      logger.info(
-        `Ajout d'une nouvelle pharmacie... => pharmacie: ${nom_pharmacie} date: ${new Date().toISOString} origine: ${req.hostname}`,
-      );
+      logger.debug(`Corps et fichier reçus (clés): ${Object.keys(req.body || {}).join(",")} ; fichier: ${req.file ? req.file.size + " octets" : "aucun"}`);
 
       const {
         code_gerant,
@@ -90,6 +95,10 @@ class controllerPharmacie {
         longitudePharmacie,
         liste_assurance_accepte,
       } = req.body;
+
+      logger.info(
+        `Ajout d'une nouvelle pharmacie... => pharmacie: ${nom_pharmacie} date: ${new Date().toISOString()} origine: ${req.hostname}`,
+      );
 
       // ✅ Validation AVANT upload
       if (
@@ -153,7 +162,10 @@ class controllerPharmacie {
           return res.status(500).json({
             success: false,
             message: "Erreur lors de l'upload de la photo",
-            error: uploadError.message,
+            error:
+              process.env.NODE_ENV === "development"
+                ? uploadError.message
+                : undefined,
           });
         }
       } else {
@@ -199,7 +211,9 @@ class controllerPharmacie {
         nom_pharmacie,
         photo_pharmacie,
         numero_pharmacie,
-        horraires_ouverture,
+        horaires_en_semaine,
+        horaires_samedi,
+        horaires_dimanche,
         latitude, // ✅ Nombre (peut être 0)
         longitude, // ✅ Nombre (peut être 0)
         ville_pharmacie,
@@ -219,7 +233,8 @@ class controllerPharmacie {
       return res.status(500).json({
         success: false,
         message: "Erreur serveur",
-        error: error.message,
+        error:
+          process.env.NODE_ENV === "development" ? error.message : undefined,
       });
     }
   }
@@ -229,8 +244,7 @@ class controllerPharmacie {
   static async modifierPharmacie(req, res) {
     try {
       console.log("=== MODIFICATION PHARMACIE ===");
-      console.log("Body:", req.body);
-      console.log("File:", req.file);
+      logger.debug(`Corps et fichier reçus (clés): ${Object.keys(req.body || {}).join(",")} ; fichier: ${req.file ? req.file.size + " octets" : "aucun"}`);
 
       const {
         code_pharmacie,
@@ -259,9 +273,6 @@ class controllerPharmacie {
       // ✅ Parser les assurances si présentes
       let assurances = null;
       if (liste_assurance_accepte) {
-        logger.info(
-          `Pas de nouvelle(s) assurance(s) acceptée(s) => pharmacie: ${nom_pharmacie} origin: ${req.hostname}`,
-        );
         try {
           assurances = JSON.parse(liste_assurance_accepte);
           console.log("✅ Assurances parsées:", assurances);
@@ -272,6 +283,10 @@ class controllerPharmacie {
             message: "Format des assurances invalide",
           });
         }
+      } else {
+        logger.info(
+          `Pas de nouvelle(s) assurance(s) acceptée(s) => pharmacie: ${code_pharmacie} origin: ${req.hostname}`,
+        );
       }
 
       // ✅ Upload photo si présente
@@ -294,7 +309,10 @@ class controllerPharmacie {
           return res.status(500).json({
             success: false,
             message: "Erreur lors de l'upload de la photo",
-            error: uploadError.message,
+            error:
+              process.env.NODE_ENV === "development"
+                ? uploadError.message
+                : undefined,
           });
         }
       } else {
@@ -318,9 +336,9 @@ class controllerPharmacie {
 
       console.log("=== AVANT APPEL MODÈLE ===");
 
-      const debut = new Date();
+      const debut = Date.now();
       logger.info(
-        `Mise à jour profile... => pharmacie: ${req.code_pharmacie} date: ${new Date().toISOString}`,
+        `Mise à jour profile... => pharmacie: ${code_pharmacie} date: ${new Date().toISOString()}`,
       );
       // ✅ Appeler le modèle
       const reponse = await modelPharmacie.modifierPharmacie(
@@ -342,15 +360,15 @@ class controllerPharmacie {
       console.log("=== RÉPONSE MODÈLE ===");
       console.log(reponse);
 
-      const duree = new Date.now() - debut;
+      const duree = Date.now() - debut;
 
       if (reponse.success) {
         logger.info(
-          `Profil pharmacie mis à jour avec succès =>pharmacie: ${req.code_pharmacie} temps_execution=${duree}`,
+          `Profil pharmacie mis à jour avec succès =>pharmacie: ${code_pharmacie} temps_execution=${duree}`,
         );
       } else {
         logger.info(
-          `Impossible de mettre à jour le profil de la pharmacie =>pharmacie: ${req.code_pharmacie} temps_execution=${duree}`,
+          `Impossible de mettre à jour le profil de la pharmacie =>pharmacie: ${code_pharmacie} temps_execution=${duree}`,
         );
       }
       return res.status(reponse.success ? 200 : 400).json(reponse);
@@ -361,7 +379,8 @@ class controllerPharmacie {
       return res.status(500).json({
         success: false,
         message: "Erreur serveur",
-        error: error.message,
+        error:
+          process.env.NODE_ENV === "development" ? error.message : undefined,
       });
     }
   }
@@ -423,7 +442,7 @@ class controllerPharmacie {
       const { code_pharmacie, est_de_garde } = req.body;
 
       console.log("=== CONTROLLER: STATUT GARDE ===");
-      console.log("Body:", req.body);
+      logger.debug(`Corps reçu (clés): ${Object.keys(req.body || {}).join(",")}`);
 
       // ✅ Validation
       if (!code_pharmacie) {
