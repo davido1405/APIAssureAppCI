@@ -85,6 +85,7 @@ class controllerUtilisateur {
       logger.error(
         `Erreur controller.utilisateurs => ajouterAssurance erreur: ${error.message}`,
       );
+      return res.status(500).json({ success: false, message: "Erreur serveur" });
     }
   }
 

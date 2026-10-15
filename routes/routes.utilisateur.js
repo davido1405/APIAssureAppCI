@@ -3,7 +3,6 @@ const express = require("express");
 const routes = express.Router();
 
 const controllerUtilisateur = require("../controllers/controller.utilisateurs");
-const { route } = require("./routes.annonces");
 const logger = require("../logger");
 
 /**
@@ -91,6 +90,11 @@ routes.post("/profilutilisateur", (req, res) => {
 routes.put("/enovyerLocalisation", (req, res) => {
   return controllerUtilisateur.envoyerLocalisation(req, res);
 });
+
+// Alias correct (faute historique conservée pour compatibilité)
+routes.put("/envoyerLocalisation", (req, res) => {
+  return controllerUtilisateur.envoyerLocalisation(req, res);
+});
 //Récupérer mot de passe
 /**
  * POST /api/utilisateur/recoverpassword
@@ -103,28 +107,29 @@ routes.put("/enovyerLocalisation", (req, res) => {
  * @return {object} 500 - Erreur serveur
  */
 routes.post("/recoverPassword", (req, res) => {
-  return res.json({
-    success: true,
-    message: "Numéro vérifier avec succès",
+  return res.status(501).json({
+    success: false,
+    message: "Récupération du code PIN non disponible pour le moment",
   });
 });
 
 //ajouter assurances de l'utilisateur
 /**
- * POST /api/utilisateur/recoverpassword
- * @summary Récupérer le mot passe
+ * @typedef {object} informationAjoutAssuranceUtilisateur
+ * @property {string} codeUtilisateur.required - Code de l'utilisateur dont on ajoute la liste d'assurance
+ * @property {array<string>} liste_assurance.required - Liste des assurances qu'on veut ajouter à la liste d'assurance de l'utilisateur
+ */
+/**
+ * POST /api/utilisateur/ajouterAssurance
+ * @summary Ajouter une assurance à un utilisateur
  * @tags Utilisateur
- * @param {string} codeUtilisateur.required - Code de l'utilisateur dont on ajoute la liste d'assurance
- * @param {Array[]} liste_assurance.required - Liste des assurances qu'on veut ajouter à la liste d'assurance de l'utilisateur
+ * @param {informationAjoutAssuranceUtilisateur} request.body.required - Informations d'ajout d'assurance
  * @return {object} 201 - Assurance ajouté avec succès
  * @return {object} 400 - Impossible d'ajouter les assurances
  * @return {object} 500 - Erreur serveur
  */
 routes.post("/ajouterAssurance", (req, res) => {
-  return res.json({
-    success: true,
-    message: "Numéro vérifier avec succès",
-  });
+  return controllerUtilisateur.ajouterAssurance(req, res);
 });
 
 //Enovyer FCM_Token
