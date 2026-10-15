@@ -7,10 +7,13 @@
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest",
     "start": "node index.js",
     "build": "npm install",
     "postinstall": "npm shrinkwrap"
+  },
+  "jest": {
+    "testEnvironment": "node"
   },
   "dependencies": {
     "@logtail/node": "^0.5.8",
@@ -35,5 +38,9 @@
     "winston": "^3.19.0",
     "winston-daily-rotate-file": "^5.0.0",
     "winston-loki": "^6.1.4"
+  },
+  "devDependencies": {
+    "jest": "^30.5.2",
+    "supertest": "^7.3.1"
   }
 }
