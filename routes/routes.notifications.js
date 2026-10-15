@@ -14,7 +14,7 @@ const logger = require("../logger");
  * GET /api/notifications
  * @summary Récupérer les notifications d'un utilisateur
  * @tags Notifications
- * @param {string} code_utilisateur.path.required - Code de l'utilisateur
+ * @param {string} code_utilisateur.query.required - Code de l'utilisateur
  * @param {number} limit.query - Nombre max d'annonces à retourner (défaut: 10)
  * @return {object} 200 - Liste des annonces
  * @return {object} 400 - Erreur
@@ -37,7 +37,7 @@ const logger = require("../logger");
  * }
  */
 routes.get("/", (req, res) => {
-  return controllerNotification.getToutesLesNotifications;
+  return controllerNotification.getToutesLesNotifications(req, res);
 });
 
 // ============================================
@@ -46,7 +46,7 @@ routes.get("/", (req, res) => {
 
 /**
  * @typedef {object} LireNotificationBody
- * @property {number} id_annonce.path.required - Id de la notification à marquer lu
+ * @property {number} id_annonce.query.required - Id de la notification à marquer lu
  * @property {string} code_utilisateur.required - Code de l'utilisateur
  */
 
@@ -54,7 +54,7 @@ routes.get("/", (req, res) => {
  * PUT /api/notifications/lireNotifications
  * @summary Lire une notification
  * @tags Notifications
- * @param {number} id_annonce.path.required - Identifiant de l'annonce à marquer Lu
+ * @param {number} id_annonce.query.required - Identifiant de l'annonce à marquer Lu
  * @param {LireNotificationBody} request.body.required - Code de l'utilisateur
  * @return {object} 200 - Annonce supprimée avec succès
  * @return {object} 400 - Impossible de supprimer (non autorisé ou introuvable)
@@ -70,7 +70,7 @@ routes.get("/", (req, res) => {
  * }
  */
 routes.put("/lireNotifications", (req, res) => {
-  return controllerNotification.LireNotification;
+  return controllerNotification.LireNotification(req, res);
 });
 
 // ============================================
@@ -86,7 +86,7 @@ routes.put("/lireNotifications", (req, res) => {
  * DELETE /api/notifications/
  * @summary Supprimer une notification
  * @tags Notifications
- * @param {number} id_annonce.path.required - Identifiant de l'annonce à supprimer
+ * @param {number} id_annonce.query.required - Identifiant de l'annonce à supprimer
  * @param {SupprimerNotificationBody} request.body.required - Code de l'utilisateur
  * @return {object} 200 - Annonce supprimée avec succès
  * @return {object} 400 - Impossible de supprimer (non autorisé ou introuvable)
@@ -102,7 +102,7 @@ routes.put("/lireNotifications", (req, res) => {
  * }
  */
 routes.delete("/supprimerNotification", (req, res) => {
-  controllerNotification.supprimerNotification;
+  return controllerNotification.supprimerNotification(req, res);
 });
 
 module.exports = routes;
