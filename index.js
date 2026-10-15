@@ -9,6 +9,7 @@ const promClient = require("prom-client");
 // Collecter CPU, RAM automatiquement
 promClient.collectDefaultMetrics();
 
+//initialiser les routes
 const routes = require("./routes/api");
 const expressJsdocSwagger = require("express-jsdoc-swagger");
 
@@ -36,7 +37,16 @@ expressJsdocSwagger(app)(options);
 
 app.use(helmet());
 
-app.use(cors());
+const corsOptions = {
+  allowedHeaders: ["Authorization", "Content-Type"],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+};
+if (process.env.CORS_ALLOWED_ORIGINS) {
+  corsOptions.origin = process.env.CORS_ALLOWED_ORIGINS.split(",")
+    .map((o) => o.trim())
+    .filter(Boolean);
+}
+app.use(cors(corsOptions));
 
 app.use(bodyParser.json());
 
