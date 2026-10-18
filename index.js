@@ -22,6 +22,10 @@ const app = express();
 
 require("./config/firebase.config");
 
+// Documentation Swagger : exposée UNIQUEMENT hors production.
+// En production, /docs et /api-docs ne sont pas enregistrés du tout -> 404.
+const exposeSwagger = process.env.NODE_ENV !== "production";
+
 const options = {
   info: {
     title: "Documentation API AssurAppCI",
@@ -31,7 +35,8 @@ const options = {
   baseDir: __dirname,
   filesPattern: "./routes/*.js",
   swaggerUIPath: "/docs",
-  exposeApiDocs: true,
+  exposeSwaggerUI: exposeSwagger,
+  exposeApiDocs: exposeSwagger,
   apiDocsPath: "/api-docs",
 };
 
