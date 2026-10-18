@@ -4,6 +4,7 @@ const upload = require("../middleware/upload");
 const routes = express.Router();
 const { verifierAccesFonctionnalite } = require("../middleware/verifierAcces");
 const { verifierJWT, verifierIdentite } = require("../middleware/auth");
+const { gestErrUpload } = require("../middleware/erreurs");
 const logger = require("../logger");
 
 // Route protégée - Statistiques avancées (Premium uniquement)
@@ -190,5 +191,13 @@ routes.get("/statistiques", (req, res) => {
 routes.get("/", (req, res) => {
   return controllerPharmacie.toutePharmacies(req, res);
 });
+
+// ============================================
+// GESTION D'ERREUR DÉDIÉE AUX UPLOADS
+// ============================================
+// Intercepte les erreurs Multer (MulterError) et celles du fileFilter
+// (ex. fichier non-image) et répond 400 JSON propre au lieu de 500 + pile.
+// Montée APRÈS les routes : Express la traite bien comme error-handler.
+routes.use(gestErrUpload);
 
 module.exports = routes;

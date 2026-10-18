@@ -16,6 +16,7 @@ const expressJsdocSwagger = require("express-jsdoc-swagger");
 const bodyParser = require("body-parser");
 const logger = require("./logger");
 const { verifierJWT } = require("./middleware/auth");
+const { gestionnaireErreurs } = require("./middleware/erreurs");
 
 const app = express();
 
@@ -138,6 +139,11 @@ app.get("/health", (req, res) => {
 });
 
 app.use("/api", routes);
+
+// Gestionnaire d'erreurs GLOBAL — TOUJOURS en dernier.
+// Garantit qu'aucune pile d'appels ni détail interne ne sort dans la réponse
+// HTTP, quel que soit NODE_ENV (voir middleware/erreurs.js).
+app.use(gestionnaireErreurs);
 
 app.listen(process.env.PORT || 4000, "0.0.0.0", () => {
   console.log("Server lancé sur: http://localhost:4000");

@@ -28,11 +28,14 @@ const fileFilter = (req, file, cb) => {
     return cb(null, true);
   } else {
     console.log("❌ Fichier rejeté");
-    cb(
-      new Error(
-        "Seulement les images sont autorisées (jpeg, jpg, png, gif, webp)",
-      ),
+    // Erreur marquée pour pouvoir être interceptée proprement (400 JSON)
+    // par le middleware d'erreurs dédié aux uploads, au lieu de remonter en 500.
+    const erreur = new Error(
+      "Seulement les images sont autorisées (jpeg, jpg, png, gif, webp)",
     );
+    erreur.isUploadError = true;
+    erreur.status = 400;
+    return cb(erreur);
   }
 };
 
