@@ -4,6 +4,7 @@ const routes = express.Router();
 
 const controllerUtilisateur = require("../controllers/controller.utilisateurs");
 const logger = require("../logger");
+const { verifierIdentite } = require("../middleware/auth");
 
 /**
  * @typedef {object} informationInscription
@@ -72,7 +73,7 @@ routes.post("/connexion", (req, res) => {
  * @return {object} 500 - Erreur serveur
  *
  */
-routes.post("/profilutilisateur", (req, res) => {
+routes.post("/profilutilisateur", verifierIdentite("code_utilisateur"), (req, res) => {
   return controllerUtilisateur.profilUtilisateur(req, res);
 });
 //Envoyer la position
@@ -87,12 +88,12 @@ routes.post("/profilutilisateur", (req, res) => {
  * @return {object} 400 - Impossible d'envoyer la position
  * @return {object} 500 - Erreur server
  */
-routes.put("/enovyerLocalisation", (req, res) => {
+routes.put("/enovyerLocalisation", verifierIdentite("code_utilisateur"), (req, res) => {
   return controllerUtilisateur.envoyerLocalisation(req, res);
 });
 
 // Alias correct (faute historique conservée pour compatibilité)
-routes.put("/envoyerLocalisation", (req, res) => {
+routes.put("/envoyerLocalisation", verifierIdentite("code_utilisateur"), (req, res) => {
   return controllerUtilisateur.envoyerLocalisation(req, res);
 });
 //Récupérer mot de passe
@@ -128,7 +129,7 @@ routes.post("/recoverPassword", (req, res) => {
  * @return {object} 400 - Impossible d'ajouter les assurances
  * @return {object} 500 - Erreur serveur
  */
-routes.post("/ajouterAssurance", (req, res) => {
+routes.post("/ajouterAssurance", verifierIdentite("codeUtilisateur"), (req, res) => {
   return controllerUtilisateur.ajouterAssurance(req, res);
 });
 
@@ -143,7 +144,7 @@ routes.post("/ajouterAssurance", (req, res) => {
  * @return {object} 400 - Impossible de trouver l'utilisateur
  * @return {object} 500 - Erreur Serveur
  */
-routes.put("/envoyerFCMT", (req, res) => {
+routes.put("/envoyerFCMT", verifierIdentite("code_utilisateur"), (req, res) => {
   return controllerUtilisateur.envoyerFCMToken(req, res);
 });
 module.exports = routes;

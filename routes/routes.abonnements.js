@@ -2,6 +2,7 @@ const express = require("express");
 const routes = express.Router();
 const AbonnementController = require("../controllers/controller.abonnements");
 const logger = require("../logger");
+const { verifierIdentite } = require("../middleware/auth");
 /**
  * GET /api/abonnements/forfaits
  * @summary Récupérer tous les forfaits disponible
@@ -24,7 +25,7 @@ routes.get("/forfaits", AbonnementController.recupererForfaits);
  * @return {object} 400 - Aucun forfaits récupéré
  * @return {object} 500 - Erreur serveur
  */
-routes.get("/actif", (req, res) => {
+routes.get("/actif", verifierIdentite(null, null, "code_pharmacie"), (req, res) => {
   return AbonnementController.recupererAbonnementActif(req, res);
 });
 
@@ -59,7 +60,7 @@ routes.post(
  * @return {object} 500 - Erreur serveur
  */
 // Souscrire à un forfait
-routes.post("/souscrire", AbonnementController.souscrireForfait);
+routes.post("/souscrire", verifierIdentite("code_gerant"), AbonnementController.souscrireForfait);
 
 /**
  * GET /api/abonnements/historique/{code_pharmacie}
@@ -72,6 +73,7 @@ routes.post("/souscrire", AbonnementController.souscrireForfait);
 // Historique des abonnements
 routes.get(
   "/historique/:code_pharmacie",
+  verifierIdentite(null, "code_pharmacie"),
   AbonnementController.historiqueAbonnements,
 );
 

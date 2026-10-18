@@ -2,6 +2,7 @@ const express = require("express");
 const controllerNewsletters = require("../controllers/controller.newsLetters");
 const logger = require("../logger");
 const routes = express.Router();
+const { verifierIdentite } = require("../middleware/auth");
 
 //Abonnement aux newsLetters
 
@@ -15,7 +16,7 @@ const routes = express.Router();
  * @return {object} 409 - Impossible de récupérer la liste des abonnements
  * @return {object} 500 - Erreur serveur
  */
-routes.post("/abonnement", (req, res) => {
+routes.post("/abonnement", verifierIdentite("codeUtilisateur"), (req, res) => {
   return controllerNewsletters.ListerAbonnementNewsletter(req, res);
 });
 /**
@@ -33,7 +34,7 @@ routes.post("/abonnement", (req, res) => {
  * @return {object} 409 - Abonnement impossible
  * @return {object} 500 - Erreur serveur
  */
-routes.post("/sabonner", (req, res) => {
+routes.post("/sabonner", verifierIdentite("codeUtilisateur"), (req, res) => {
   return controllerNewsletters.sabonner(req, res);
 });
 /**
@@ -46,7 +47,7 @@ routes.post("/sabonner", (req, res) => {
  * @return {object} 409 - Suppression de l'abonnement impossible
  * @return {object} 500 - Erreur serveur
  */
-routes.delete("/supprimerabonnement", (req, res) => {
+routes.delete("/supprimerabonnement", verifierIdentite("codeUtilisateur"), (req, res) => {
   return controllerNewsletters.supprimerabonnement(req, res);
 });
 module.exports = routes;

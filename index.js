@@ -15,6 +15,7 @@ const expressJsdocSwagger = require("express-jsdoc-swagger");
 
 const bodyParser = require("body-parser");
 const logger = require("./logger");
+const { verifierJWT } = require("./middleware/auth");
 
 const app = express();
 
@@ -40,12 +41,9 @@ app.use(helmet());
 const corsOptions = {
   allowedHeaders: ["Authorization", "Content-Type"],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  // Autoriser toutes les origines en développement (front PHP sur 8080, etc.)
+  origin: process.env.NODE_ENV !== 'production' ? true : (process.env.CORS_ALLOWED_ORIGINS ? process.env.CORS_ALLOWED_ORIGINS.split(",").map((o) => o.trim()).filter(Boolean) : false),
 };
-if (process.env.CORS_ALLOWED_ORIGINS) {
-  corsOptions.origin = process.env.CORS_ALLOWED_ORIGINS.split(",")
-    .map((o) => o.trim())
-    .filter(Boolean);
-}
 app.use(cors(corsOptions));
 
 app.use(bodyParser.json());
@@ -54,6 +52,12 @@ app.use(
   rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 100,
+    /* Exemption IP locale UNIQUEMENT pour les tests de sécurité en local.
+       Ne jamais activer cette exemption en production. */
+    skip: (req) => {
+      const ip = req.ip || req.connection?.remoteAddress || req.socket?.remoteAddress || '';
+      return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1' || ip === 'localhost';
+    },
   }),
 );
 
@@ -68,6 +72,57 @@ app.use((req, res, next) => {
 
   next();
 });
+
+// Routes publiques (exemptées de JWT) — l'app Flutter les appelle sans token
+const ROUTES_PUBLIQUES = [
+  "^/api/utilisateur/inscription$",
+  "^/api/utilisateur/connexion$",
+  "^/api/utilisateur/recoverPassword$",
+  "^/api/pharmacie/rechercher",
+  "^/api/pharmacie$",
+  "^/api/assurance$",
+  "^/api/abonnements/forfaits$",
+  "^/api/annonces/toutes$",
+];
+
+function estRoutePublique(url) {
+  return ROUTES_PUBLIQUES.some((pattern) => new RegExp(pattern).test(url));
+}
+
+// Middleware d'authentification JWT (mode STRICT par défaut).
+// Les routes publiques sont exemptées. Sur toutes les autres routes, un jeton
+// valide est exigé. Seule la variable AUTH_STRICT_MODE=false rétablit le mode
+// compatibilité (période de transition pour l'app Flutter qui n'envoie pas
+// encore le token).
+app.use("/api", (req, res, next) => {
+  if (estRoutePublique(req.originalUrl)) {
+    return next();
+  }
+  return verifierJWT(req, res, next);
+});
+
+// --- Rate-limit DÉDIÉ à l'authentification (anti brute-force) ---
+// Limiteur spécifique monté uniquement sur POST /api/utilisateur/connexion.
+// Il est distinct du limiteur global (100 req / 15 min / IP) qui, lui, est
+// exempté pour les IP locales dans le cadre des tests de sécurité.
+// Ici AUCUNE exemption : une IP qui enchaîne les échecs est bloquée.
+const limiteurConnexion = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // 10 tentatives par IP et par fenêtre (échecs compris)
+  standardHeaders: true,
+  legacyHeaders: false,
+  // ATTENTION : on ne peut PAS utiliser skipSuccessfulRequests, car l'API de
+  // connexion répond HTTP 200 même lorsque les identifiants sont invalides
+  // (l'échec est signalé dans le corps JSON, pas par le code HTTP). Compter
+  // toutes les requêtes est donc nécessaire pour freiner la force brute.
+  message: {
+    success: false,
+    message:
+      "Trop de tentatives de connexion. Veuillez réessayer dans quelques minutes.",
+  },
+});
+app.post("/api/utilisateur/connexion", limiteurConnexion);
+
 // Route de santé pour le monitor
 app.get("/health", (req, res) => {
   res.status(200).json({

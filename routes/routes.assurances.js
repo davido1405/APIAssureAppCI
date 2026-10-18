@@ -2,6 +2,7 @@ const express = require("express");
 const controllerAssurances = require("../controllers/controller.assurances");
 const logger = require("../logger");
 const routes = express.Router();
+const { estAdmin } = require("../middleware/auth");
 
 /**
  * POST /api/assurance/ajouterassurance
@@ -12,9 +13,13 @@ const routes = express.Router();
  * @return {object} 400 - Ajout impossible
  * @return {object} 500 - Erreur serveur
  */
-routes.post("/ajouterassurance", (req, res) => {
-  return controllerAssurances.ajouterAssurance(req, res);
-});
+routes.post(
+  "/ajouterassurance",
+  estAdmin,
+  (req, res) => {
+    return controllerAssurances.ajouterAssurance(req, res);
+  },
+);
 
 /**
  * PUT /api/assurance/modifierassurance
@@ -26,9 +31,13 @@ routes.post("/ajouterassurance", (req, res) => {
  * @return {object} 400 - Mise à jour impossible
  * @return {object} 500 - Erreur serveur
  */
-routes.put("/modifierassurance", (req, res) => {
-  return controllerAssurances.modifierAssurance(req, res);
-});
+routes.put(
+  "/modifierassurance",
+  estAdmin,
+  (req, res) => {
+    return controllerAssurances.modifierAssurance(req, res);
+  },
+);
 
 /**
  * PUT /api/assurance/desactiverassurance
@@ -39,9 +48,13 @@ routes.put("/modifierassurance", (req, res) => {
  * @return {object} 400 - Mise à jour impossible
  * @return {object} 500 - Erreur serveur
  */
-routes.put("/desactiverassurance", (req, res) => {
-  return controllerAssurances.desactiverAssurance(req, res);
-});
+routes.put(
+  "/desactiverassurance",
+  estAdmin,
+  (req, res) => {
+    return controllerAssurances.desactiverAssurance(req, res);
+  },
+);
 
 /**
  * PUT /api/assurance/activerassurance
@@ -52,9 +65,13 @@ routes.put("/desactiverassurance", (req, res) => {
  * @return {object} 400 - Mise à jour impossible
  * @return {object} 500 - Erreur serveur
  */
-routes.put("/activerassurance", (req, res) => {
-  return controllerAssurances.activerAssurance(req, res);
-});
+routes.put(
+  "/activerassurance",
+  estAdmin,
+  (req, res) => {
+    return controllerAssurances.activerAssurance(req, res);
+  },
+);
 
 /**
  * GET /api/assurance

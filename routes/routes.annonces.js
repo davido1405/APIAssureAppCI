@@ -4,6 +4,7 @@ const express = require("express");
 const routes = express.Router();
 
 const controllerAnnonce = require("../controllers/controller.annonces");
+const { verifierIdentite } = require("../middleware/auth");
 
 // ============================================
 // ENVOYER UNE ANNONCE
@@ -42,7 +43,7 @@ const controllerAnnonce = require("../controllers/controller.annonces");
  *   "nb_notifications_recues": 145
  * }
  */
-routes.post("/envoyer", controllerAnnonce.envoyerAnnonce);
+routes.post("/envoyer", verifierIdentite("code_gerant"), controllerAnnonce.envoyerAnnonce);
 
 // ============================================
 // RÉCUPÉRER ANNONCES D'UNE PHARMACIE
@@ -71,7 +72,7 @@ routes.post("/envoyer", controllerAnnonce.envoyerAnnonce);
  *   ]
  * }
  */
-routes.get("/pharmacie", controllerAnnonce.getAnnoncesParPharmacie);
+routes.get("/pharmacie", verifierIdentite(null, null, "code_gerant"), controllerAnnonce.getAnnoncesParPharmacie);
 
 // ============================================
 // RÉCUPÉRER TOUTES LES ANNONCES
@@ -130,6 +131,6 @@ routes.get("/toutes", controllerAnnonce.getToutesLesAnnonces);
  *   "message": "Annonce supprimée avec succès"
  * }
  */
-routes.delete("/:id_annonce", controllerAnnonce.supprimerAnnonce);
+routes.delete("/:id_annonce", verifierIdentite("code_gerant"), controllerAnnonce.supprimerAnnonce);
 
 module.exports = routes;

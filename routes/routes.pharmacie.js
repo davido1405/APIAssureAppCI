@@ -3,12 +3,14 @@ const controllerPharmacie = require("../controllers/controller.pharmacie");
 const upload = require("../middleware/upload");
 const routes = express.Router();
 const { verifierAccesFonctionnalite } = require("../middleware/verifierAcces");
+const { verifierJWT, verifierIdentite } = require("../middleware/auth");
 const logger = require("../logger");
 
 // Route protégée - Statistiques avancées (Premium uniquement)
 routes.get(
   "/statistiques/avancees/:code_pharmacie",
   verifierAccesFonctionnalite("STATS_AVANCEES"),
+  verifierIdentite(null, "code_pharmacie"),
   (req, res) => {
     return controllerPharmacie.statistiquesAvancees(req, res);
   },
@@ -24,9 +26,13 @@ routes.get(
  * @return {object} 400 - Données invalides
  * @return {object} 500 - Erreur serveur
  */
-routes.post("/profilpharmacie", (req, res) => {
-  return controllerPharmacie.profilPharmacie(req, res);
-});
+routes.post(
+  "/profilpharmacie",
+  verifierIdentite("code_gerant"),
+  (req, res) => {
+    return controllerPharmacie.profilPharmacie(req, res);
+  },
+);
 
 //Ajouter une assurance à la liste des assurances acceptées
 /**
@@ -43,9 +49,13 @@ routes.post("/profilpharmacie", (req, res) => {
  * @return {object} 400 - Ajout de l'assurance impossible
  * @return {object} 500 - Erreur serveur
  */
-routes.post("/ajouterassurance", (req, res) => {
-  return controllerPharmacie.ajouterAssurance(req, res);
-});
+routes.post(
+  "/ajouterassurance",
+  verifierIdentite("codePharmacie"),
+  (req, res) => {
+    return controllerPharmacie.ajouterAssurance(req, res);
+  },
+);
 
 //Enregistrer une pharmacie
 /**
@@ -106,6 +116,7 @@ routes.post("/ajouterPharmacie", upload.single("photo"), (req, res) => {
 routes.put(
   "/modifierpharmacie",
   upload.single("photo"), // ✅ Middleware AVANT le controller
+  verifierIdentite("code_pharmacie"),
   controllerPharmacie.modifierPharmacie,
 );
 
@@ -125,6 +136,7 @@ routes.put(
  */
 routes.put(
   "/modifierstatutgarde", // ✅ Middleware AVANT le controller
+  verifierIdentite("code_pharmacie"),
   controllerPharmacie.mettreAJourStatutGarde,
 );
 

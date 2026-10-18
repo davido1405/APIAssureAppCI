@@ -67,13 +67,13 @@ class Pharmacie {
   a.adresse_fournit,
   v.nom_ville,
   s.libelle_statut,
-  GROUP_CONCAT(ass.nom_assurance SEPARATOR ', ') as assurances_acceptees
+  GROUP_CONCAT(DISTINCT ass.nom_assurance SEPARATOR ', ') as assurances_acceptees
 FROM pharmacie as p
 LEFT JOIN horaires_ouverture as h ON h.code_pharmacie=p.code_pharmacie
 INNER JOIN adresse_pharmacie as a ON a.code_pharmacie = p.code_pharmacie 
 INNER JOIN statut as s ON s.id_statut = p.id_statut
 LEFT JOIN pharmacie_assurance as pa ON pa.code_pharmacie = p.code_pharmacie
-LEFT JOIN assurances as ass ON ass.id_assurance = pa.id_assurance
+LEFT JOIN assurances as ass ON ass.id_assurance = pa.id_assurance AND LOWER(ass.nom_assurance) <> 'aucune assurance'
 LEFT JOIN villes as v ON v.id_ville=a.id_ville
 WHERE p.code_pharmacie = ?
 GROUP BY 
@@ -136,6 +136,7 @@ GROUP BY
       let i = 0;
       let j = 0;
       for (const assurance of liste_assurance) {
+        if (typeof assurance !== "string" || assurance.trim().toLowerCase() === "aucune assurance") continue;
         logger.debug(
           `Vérification existe de l'assurance dans le système... => assurance: ${assurance}`,
         );
@@ -217,13 +218,13 @@ GROUP BY
   a.adresse_fournit,
   v.nom_ville,
   s.libelle_statut,
-  GROUP_CONCAT(ass.nom_assurance SEPARATOR ', ') as assurances_acceptees
+  GROUP_CONCAT(DISTINCT ass.nom_assurance SEPARATOR ', ') as assurances_acceptees
 FROM pharmacie as p
 LEFT JOIN horaires_ouverture as h ON h.code_pharmacie=p.code_pharmacie
 INNER JOIN adresse_pharmacie as a ON a.code_pharmacie = p.code_pharmacie 
 INNER JOIN statut as s ON s.id_statut = p.id_statut
 LEFT JOIN pharmacie_assurance as pa ON pa.code_pharmacie = p.code_pharmacie
-LEFT JOIN assurances as ass ON ass.id_assurance = pa.id_assurance
+LEFT JOIN assurances as ass ON ass.id_assurance = pa.id_assurance AND LOWER(ass.nom_assurance) <> 'aucune assurance'
 LEFT JOIN villes as v ON v.id_ville=a.id_ville
 GROUP BY 
   p.code_pharmacie,
@@ -316,13 +317,13 @@ GROUP BY
   a.adresse_fournit,
   v.nom_ville,
   s.libelle_statut,
-  GROUP_CONCAT(ass.nom_assurance SEPARATOR ', ') as assurances_acceptees
+  GROUP_CONCAT(DISTINCT ass.nom_assurance SEPARATOR ', ') as assurances_acceptees
 FROM pharmacie as p
 LEFT JOIN horaires_ouverture as h ON h.code_pharmacie=p.code_pharmacie
 INNER JOIN adresse_pharmacie as a ON a.code_pharmacie = p.code_pharmacie 
 INNER JOIN statut as s ON s.id_statut = p.id_statut
 LEFT JOIN pharmacie_assurance as pa ON pa.code_pharmacie = p.code_pharmacie
-LEFT JOIN assurances as ass ON ass.id_assurance = pa.id_assurance
+LEFT JOIN assurances as ass ON ass.id_assurance = pa.id_assurance AND LOWER(ass.nom_assurance) <> 'aucune assurance'
 LEFT JOIN villes as v ON v.id_ville=a.id_ville
 GROUP BY 
   p.code_pharmacie,
@@ -689,6 +690,7 @@ GROUP BY
       let i = 0;
       // Ajouter les assurances acceptées
       for (const nomAssurance of liste_assurance_accepte) {
+          if (typeof nomAssurance !== "string" || nomAssurance.trim().toLowerCase() === "aucune assurance") continue;
         const [rowsAssurance] = await connexion.query(
           "SELECT id_assurance FROM assurances WHERE nom_assurance = ?",
           [nomAssurance],
@@ -1073,6 +1075,7 @@ GROUP BY
         let i = 0;
         // Ajouter les nouvelles
         for (const nomAssurance of liste_assurance_accepte) {
+          if (typeof nomAssurance !== "string" || nomAssurance.trim().toLowerCase() === "aucune assurance") continue;
           logger.debug(`Vérification que l'assurance existe en BD`);
           const [rowsAssurance] = await connexion.query(
             "SELECT id_assurance FROM assurances WHERE nom_assurance = ?",

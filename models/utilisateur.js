@@ -3,6 +3,7 @@ const logger = require("../logger.js");
 const jwt = require("../config/jwt_manager.js");
 const { log } = require("winston");
 const { messaging } = require("firebase-admin");
+const bcrypt = require("bcrypt");
 class utilisateur {
   static randomAlphaNum(length) {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -103,7 +104,7 @@ class utilisateur {
           nomUtilisateur,
           prenomUtilisateur,
           numeroUtilisateur,
-          codePinUtilisateur,
+          bcrypt.hashSync(codePinUtilisateur, 10),
           type,
           idAssurance,
         ],
@@ -221,7 +222,29 @@ class utilisateur {
             "Aucun compte n'existe pour ce numéro. Veuillez vous inscrire ! Merci",
         };
       }
-      if (utilisateur.password_hash != codePinUtilisateur) {
+      let pinValide = false;
+      let doitMigrer = false;
+
+      // Vérifier si le hash stocké est déjà un hash bcrypt
+      const estHashBcrypt =
+        utilisateur.password_hash &&
+        utilisateur.password_hash.startsWith("$2");
+
+      if (estHashBcrypt) {
+        // Comparaison bcrypt
+        pinValide = bcrypt.compareSync(
+          codePinUtilisateur,
+          utilisateur.password_hash,
+        );
+      } else {
+        // Migration : comparaison en clair pour les anciens comptes
+        pinValide = utilisateur.password_hash === codePinUtilisateur;
+        if (pinValide) {
+          doitMigrer = true;
+        }
+      }
+
+      if (!pinValide) {
         logger.info(
           `Code pin erroné lors de la connexion => numéro: ${numeroUtilisateur}`,
         );
@@ -229,6 +252,25 @@ class utilisateur {
           success: false,
           message: "Veuillez vérifier votre mot de passe. Merci",
         };
+      }
+
+      // Migration : hacher le PIN en clair et mettre à jour en base
+      if (doitMigrer) {
+        try {
+          const nouveauHash = bcrypt.hashSync(codePinUtilisateur, 10);
+          await connexion.query(
+            "UPDATE utilisateurs SET password_hash = ? WHERE code_utilisateur = ?",
+            [nouveauHash, utilisateur.code_utilisateur],
+          );
+          logger.info(
+            `PIN migré vers bcrypt pour l'utilisateur ${utilisateur.code_utilisateur}`,
+          );
+        } catch (errMigration) {
+          logger.error(
+            `Erreur lors de la migration du PIN bcrypt : ${errMigration.message}`,
+          );
+          // On ne bloque pas la connexion si la migration échoue
+        }
       }
 
       logger.info(`Génération du JWT... => utilisateur: ${numeroUtilisateur}`);

@@ -5,6 +5,7 @@ const routes = express.Router();
 
 const controllerNotification = require("../controllers/controller.notifications");
 const logger = require("../logger");
+const { verifierIdentite } = require("../middleware/auth");
 
 // ============================================
 // RÉCUPÉRER LES NOTIFICATION D'UN UTILISATEUR
@@ -36,7 +37,7 @@ const logger = require("../logger");
  *   ]
  * }
  */
-routes.get("/", (req, res) => {
+routes.get("/", verifierIdentite(null, null, "code_utilisateur"), (req, res) => {
   return controllerNotification.getToutesLesNotifications(req, res);
 });
 
@@ -69,9 +70,13 @@ routes.get("/", (req, res) => {
  *   "message": "Notification supprimée avec succès"
  * }
  */
-routes.put("/lireNotifications", (req, res) => {
-  return controllerNotification.LireNotification(req, res);
-});
+routes.put(
+  "/lireNotifications",
+  verifierIdentite("code_utilisateur"),
+  (req, res) => {
+    return controllerNotification.LireNotification(req, res);
+  },
+);
 
 // ============================================
 // SUPPRIMER UNE NOTIFICATION
@@ -101,8 +106,12 @@ routes.put("/lireNotifications", (req, res) => {
  *   "message": "Annonce supprimée avec succès"
  * }
  */
-routes.delete("/supprimerNotification", (req, res) => {
-  return controllerNotification.supprimerNotification(req, res);
-});
+routes.delete(
+  "/supprimerNotification",
+  verifierIdentite("code_utilisateur"),
+  (req, res) => {
+    return controllerNotification.supprimerNotification(req, res);
+  },
+);
 
 module.exports = routes;
