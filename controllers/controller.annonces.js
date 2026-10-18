@@ -1,7 +1,7 @@
 const express = require("express");
 const modelAnnonces = require("../models/annonces");
 const modelAbonnement = require("../models/abonnements");
-const { default: logger } = require("../logger");
+const logger = require("../logger");
 
 class controllerAnnonces {
   /**

@@ -261,6 +261,65 @@ class Annonces {
   }
 
   /**
+   * Récupérer toutes les annonces (fil d'actualité public)
+   * @param {number} limit - nombre max d'annonces (défaut 50)
+   */
+  static async getToutesLesAnnonces(limit = 50) {
+    let connexion;
+
+    try {
+      connexion = await dataBase.getConnection();
+
+      // Sécuriser la limite : entier strictement positif
+      const limite = Number.isInteger(limit) && limit > 0 ? limit : 50;
+
+      logger.debug(`Récupération de toutes les annonces du système...`);
+
+      const [annonces] = await connexion.query(
+        `SELECT
+          a.id_annonce,
+          a.titre,
+          a.contenu,
+          a.date_publication,
+          a.nombre_vue,
+          ta.libelle_type_annonce,
+          p.nom_pharmacie,
+          p.photo_pharmacie
+         FROM annonce a
+         INNER JOIN type_annonce ta ON a.id_type_annonce = ta.id_type_annonce
+         INNER JOIN pharmacie p ON p.code_pharmacie = a.code_pharmacie
+         ORDER BY a.date_publication DESC
+         LIMIT ?`,
+        [limite],
+      );
+
+      logger.debug(
+        `Toutes les annonces récupérées avec succès (${annonces.length})`,
+      );
+
+      // Liste vide -> réponse propre 200 avec data: []
+      return {
+        success: true,
+        total_annonces: annonces.length,
+        data: annonces,
+      };
+    } catch (error) {
+      logger.error(
+        `Erreur lors de la récupération de toutes les annonces erreur: ${error.message}`,
+      );
+      console.error("❌ Erreur getToutesLesAnnonces:", error);
+      return {
+        success: false,
+        message: "Erreur lors de la récupération des annonces",
+      };
+    } finally {
+      if (connexion) {
+        connexion.release();
+      }
+    }
+  }
+
+  /**
    * Supprimer une annonce
    */
   static async supprimerAnnonce(id_annonce, code_gerant) {
