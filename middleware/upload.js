@@ -48,4 +48,50 @@ const upload = multer({
   fileFilter: fileFilter,
 });
 
+// ============================================================
+// VÉRIFICATION DU CONTENU RÉEL (magic bytes)
+// ============================================================
+// Le fileFilter ne valide que le nom et le type MIME *déclarés* par le client :
+// un fichier texte renommé « fake.jpg » (Content-Type: image/jpeg) passait.
+// On contrôle donc la signature binaire réelle après réception du buffer.
+const SIGNATURES_IMAGE = [
+  { nom: "png", octets: [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a] },
+  { nom: "jpeg", octets: [0xff, 0xd8, 0xff] },
+  { nom: "gif", octets: [0x47, 0x49, 0x46, 0x38] }, // "GIF8"
+  { nom: "bmp", octets: [0x42, 0x4d] }, // "BM"
+];
+
+function contenuEstImage(buffer) {
+  if (!buffer || buffer.length < 12) return false;
+  if (SIGNATURES_IMAGE.some((s) => s.octets.every((b, i) => buffer[i] === b))) {
+    return true;
+  }
+  // WebP : conteneur RIFF avec le type "WEBP" à l'offset 8.
+  if (
+    buffer.slice(0, 4).toString("ascii") === "RIFF" &&
+    buffer.slice(8, 12).toString("ascii") === "WEBP"
+  ) {
+    return true;
+  }
+  return false;
+}
+
+// À monter APRÈS upload.single(...) : rejette en 400 JSON (via gestErrUpload)
+// tout fichier dont le contenu n'est pas une image au sens binaire.
+function verifierContenuImage(req, res, next) {
+  if (!req.file) return next(); // absence de fichier : gérée par le contrôleur
+  if (!contenuEstImage(req.file.buffer)) {
+    console.log("❌ Contenu non-image (signature invalide)");
+    const erreur = new Error(
+      "Le fichier envoyé n'est pas une image valide (contenu non reconnu)",
+    );
+    erreur.isUploadError = true;
+    erreur.status = 400;
+    return next(erreur);
+  }
+  return next();
+}
+
+upload.verifierContenuImage = verifierContenuImage;
+
 module.exports = upload;

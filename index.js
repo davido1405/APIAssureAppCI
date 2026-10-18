@@ -135,6 +135,10 @@ app.get("/health", (req, res) => {
     status: "ok",
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
+    // Indique au harnais si le mock Cloudinary local est actif (jamais en prod).
+    cloudinaryMock:
+      process.env.MOCK_CLOUDINARY === "true" &&
+      process.env.NODE_ENV !== "production",
   });
 });
 

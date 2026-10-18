@@ -5,6 +5,22 @@ const streamifier = require("streamifier");
 class ImageManagement {
   // ✅ Upload depuis un buffer (Multer memory)
   static async uploadFromBuffer(fileBuffer, fileName) {
+    // --- Mock local pour les tests de bout en bout (jamais en production) ---
+    // Activé uniquement si MOCK_CLOUDINARY=true ET NODE_ENV !== "production".
+    // Renvoie une URL factice sans aucun appel réseau vers Cloudinary.
+    if (
+      process.env.MOCK_CLOUDINARY === "true" &&
+      process.env.NODE_ENV !== "production"
+    ) {
+      const urlMock = `https://mock.cloudinary.local/pharmacies/${fileName}`;
+      console.log("🧪 [MOCK_CLOUDINARY] Upload simulé (aucun appel réseau) ->", urlMock);
+      return {
+        secure_url: urlMock,
+        public_id: `pharmacies/${fileName}`,
+        mocked: true,
+      };
+    }
+
     return new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {

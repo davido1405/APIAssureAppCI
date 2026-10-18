@@ -608,7 +608,7 @@ GROUP BY
       const [newPharma] = await connexion.query(
         `INSERT INTO pharmacie 
       (code_pharmacie, nom_pharmacie, photo_pharmacie, numeros_pharmacie, id_statut, email_pharmacie) 
-      VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      VALUES (?, ?, ?, ?, ?, ?)`,
         [
           code_pharma,
           nom_pharmacie,

@@ -84,9 +84,14 @@ routes.post(
  * @return {object} 400 - Impossible d'enregistrer la pharmacie
  * @return {object} 500 - Erreur serveur
  */
-routes.post("/ajouterPharmacie", upload.single("photo"), (req, res) => {
-  return controllerPharmacie.ajouterPharmacie(req, res);
-});
+routes.post(
+  "/ajouterPharmacie",
+  upload.single("photo"),
+  upload.verifierContenuImage,
+  (req, res) => {
+    return controllerPharmacie.ajouterPharmacie(req, res);
+  },
+);
 
 //Modifier les informations d'une pharmacie
 /**
@@ -117,6 +122,7 @@ routes.post("/ajouterPharmacie", upload.single("photo"), (req, res) => {
 routes.put(
   "/modifierpharmacie",
   upload.single("photo"), // ✅ Middleware AVANT le controller
+  upload.verifierContenuImage, // ✅ Rejet 400 si le contenu n'est pas une image réelle
   verifierIdentite("code_pharmacie"),
   controllerPharmacie.modifierPharmacie,
 );
