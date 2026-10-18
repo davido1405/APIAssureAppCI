@@ -86,7 +86,12 @@ const ROUTES_PUBLIQUES = [
 ];
 
 function estRoutePublique(url) {
-  return ROUTES_PUBLIQUES.some((pattern) => new RegExp(pattern).test(url));
+  // IMPORTANT : on teste sur le CHEMIN SEUL (sans la chaîne de requête).
+  // Sinon les motifs ancrés par « $ » (ex. ^/api/pharmacie$) ne matchent plus
+  // dès qu'un ?query est présent, et une route publique devient protégée
+  // (ex. GET /api/pharmacie?limits=10 -> 401 au lieu de 200).
+  const chemin = String(url).split("?")[0];
+  return ROUTES_PUBLIQUES.some((pattern) => new RegExp(pattern).test(chemin));
 }
 
 // Middleware d'authentification JWT (mode STRICT par défaut).
