@@ -3,15 +3,17 @@ const controllerPharmacie = require("../controllers/controller.pharmacie");
 const upload = require("../middleware/upload");
 const routes = express.Router();
 const { verifierAccesFonctionnalite } = require("../middleware/verifierAcces");
-const { verifierJWT, verifierIdentite } = require("../middleware/auth");
+const { verifierJWT, verifierIdentite, verifierProprietairePharmacie } = require("../middleware/auth");
 const { gestErrUpload } = require("../middleware/erreurs");
 const logger = require("../logger");
 
 // Route protégée - Statistiques avancées (Premium uniquement)
 routes.get(
   "/statistiques/avancees/:code_pharmacie",
+  // Propriété vérifiée AVANT le contrôle d'abonnement : sinon une requête
+  // visant la pharmacie d'un autre gérant pourrait consommer son quota.
+  verifierProprietairePharmacie(null, "code_pharmacie"),
   verifierAccesFonctionnalite("STATS_AVANCEES"),
-  verifierIdentite(null, "code_pharmacie"),
   (req, res) => {
     return controllerPharmacie.statistiquesAvancees(req, res);
   },
@@ -52,7 +54,7 @@ routes.post(
  */
 routes.post(
   "/ajouterassurance",
-  verifierIdentite("codePharmacie"),
+  verifierProprietairePharmacie("codePharmacie"),
   (req, res) => {
     return controllerPharmacie.ajouterAssurance(req, res);
   },
@@ -123,7 +125,7 @@ routes.put(
   "/modifierpharmacie",
   upload.single("photo"), // ✅ Middleware AVANT le controller
   upload.verifierContenuImage, // ✅ Rejet 400 si le contenu n'est pas une image réelle
-  verifierIdentite("code_pharmacie"),
+  verifierProprietairePharmacie("code_pharmacie"),
   controllerPharmacie.modifierPharmacie,
 );
 
@@ -143,7 +145,7 @@ routes.put(
  */
 routes.put(
   "/modifierstatutgarde", // ✅ Middleware AVANT le controller
-  verifierIdentite("code_pharmacie"),
+  verifierProprietairePharmacie("code_pharmacie"),
   controllerPharmacie.mettreAJourStatutGarde,
 );
 

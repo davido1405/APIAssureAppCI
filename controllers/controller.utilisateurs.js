@@ -45,6 +45,50 @@ class controllerUtilisateur {
     }
   }
 
+  //Renouveler la session (refresh token)
+  static async refresh(req, res) {
+    try {
+      const corps = req.body || {};
+      let refreshToken = corps.refresh_token || corps.refreshToken || null;
+
+      // Repli : jeton fourni dans l'en-tête Authorization: Bearer <token>.
+      if (!refreshToken && typeof req.headers.authorization === "string") {
+        const [schema, valeur] = req.headers.authorization.split(" ");
+        if (schema === "Bearer" && valeur) refreshToken = valeur;
+      }
+
+      if (!refreshToken) {
+        return res.status(400).json({
+          success: false,
+          message: "Jeton de rafraîchissement requis",
+        });
+      }
+
+      const reponse = await modelUtilisateur.rafraichirSession(refreshToken);
+      const statut = reponse.success ? 200 : reponse.http_status || 401;
+
+      if (reponse.success) {
+        return res.status(statut).json(reponse);
+      }
+
+      logger.info(
+        `Renouvellement de session refusé (${statut}) : ${reponse.message}`,
+      );
+      return res.status(statut).json({
+        success: false,
+        message: reponse.message,
+      });
+    } catch (error) {
+      logger.error(
+        `Erreur controller.utilisateurs => refresh erreur: ${error.message}`,
+      );
+      return res.status(503).json({
+        success: false,
+        message: "Renouvellement impossible pour le moment. Veuillez réessayer.",
+      });
+    }
+  }
+
   //Récupérer le profil utilisateur
   static async profilUtilisateur(req, res) {
     try {

@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 const logger = require("../logger");
+const dataBase = require("../config/db_config.js");
 
 /**
  * Middleware d'authentification JWT (mode strict par défaut).
@@ -44,10 +45,16 @@ function verifierJWT(req, res, next) {
     return next();
   }
 
-  jwt.verify(token, process.env.JWT_KEY, (err, decoded) => {
-    if (err) {
+  jwt.verify(token, process.env.JWT_KEY, { algorithms: ["HS256"] }, (err, decoded) => {
+    // Un refresh token ne doit jamais ouvrir une route protégée : il ne sert
+    // qu'à obtenir un nouveau jeton d'accès via /api/utilisateur/refresh.
+    // (Les deux jetons peuvent partager le même secret si JWT_REFRESH_KEY
+    // n'est pas défini, d'où ce contrôle explicite du claim `type`.)
+    if (err || (decoded && decoded.type === "refresh")) {
       logger.warn(
-        `Token invalide ou expiré : ${req.method} ${req.originalUrl} (${err.message})`,
+        `Token invalide ou expiré : ${req.method} ${req.originalUrl} (${
+          err ? err.message : "jeton de rafraîchissement refusé"
+        })`,
       );
       return res.status(403).json({
         success: false,
@@ -132,4 +139,71 @@ function verifierIdentite(champBody, champParam, champQuery) {
   };
 }
 
-module.exports = { verifierJWT, estAdmin, verifierIdentite };
+/**
+ * Vérifie que la pharmacie visée appartient bien à l'utilisateur authentifié.
+ *
+ * Le code pharmacie (ex. PHARM001) et le code utilisateur (ex. GERANT001) sont
+ * deux identifiants distincts : la propriété est portée par la table de liaison
+ * utilisateur_gerant. Une simple égalité de chaînes — comme dans
+ * verifierIdentite — rejetterait donc le propriétaire légitime.
+ *
+ * @param {string} champBody  champ du corps contenant le code pharmacie
+ * @param {string} champParam champ d'URL contenant le code pharmacie
+ * @param {string} champQuery champ de query contenant le code pharmacie
+ */
+function verifierProprietairePharmacie(champBody, champParam, champQuery) {
+  return async function (req, res, next) {
+    // Mode compatibilité : pas d'utilisateur authentifié, on laisse passer.
+    if (!req.user) {
+      return next();
+    }
+
+    let codePharmacie = null;
+    if (champBody && req.body && req.body[champBody] !== undefined) {
+      codePharmacie = req.body[champBody];
+    } else if (champParam && req.params && req.params[champParam] !== undefined) {
+      codePharmacie = req.params[champParam];
+    } else if (champQuery && req.query && req.query[champQuery] !== undefined) {
+      codePharmacie = req.query[champQuery];
+    }
+
+    // Aucun code visé : le contrôleur appliquera ses propres règles.
+    if (codePharmacie === null || codePharmacie === undefined || codePharmacie === "") {
+      return next();
+    }
+
+    try {
+      const [rows] = await dataBase.query(
+        "SELECT 1 FROM utilisateur_gerant WHERE code_utilisateur = ? AND code_pharmacie = ? LIMIT 1",
+        [req.user.code_utilisateur, String(codePharmacie)],
+      );
+
+      if (!rows.length) {
+        logger.warn(
+          `Tentative d'accès à la pharmacie d'un autre utilisateur : visée="${codePharmacie}", authentifié="${req.user.code_utilisateur}" (${req.method} ${req.originalUrl})`,
+        );
+        return res.status(403).json({
+          success: false,
+          message: "Accès non autorisé à cette ressource",
+        });
+      }
+
+      return next();
+    } catch (err) {
+      logger.error(
+        `Erreur de vérification du propriétaire de la pharmacie : ${err.message}`,
+      );
+      return res.status(500).json({
+        success: false,
+        message: "Vérification d'accès impossible pour le moment",
+      });
+    }
+  };
+}
+
+module.exports = {
+  verifierJWT,
+  estAdmin,
+  verifierIdentite,
+  verifierProprietairePharmacie,
+};

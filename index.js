@@ -83,6 +83,7 @@ app.use((req, res, next) => {
 const ROUTES_PUBLIQUES = [
   "^/api/utilisateur/inscription$",
   "^/api/utilisateur/connexion$",
+  "^/api/utilisateur/refresh$",
   "^/api/utilisateur/recoverPassword$",
   "^/api/pharmacie/rechercher",
   "^/api/pharmacie$",
@@ -133,6 +134,23 @@ const limiteurConnexion = rateLimit({
   },
 });
 app.post("/api/utilisateur/connexion", limiteurConnexion);
+
+// Limiteur dédié au renouvellement de session. Le refresh token n'est pas
+// devinable (JWT signé) : ce plafond protège surtout la base de données d'un
+// client qui boucle. 120 renouvellements / 15 min / IP laisse largement la
+// place à plusieurs postes derrière une même connexion.
+const limiteurRefresh = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message:
+      "Trop de demandes de renouvellement. Veuillez réessayer dans quelques minutes.",
+  },
+});
+app.post("/api/utilisateur/refresh", limiteurRefresh);
 
 // Route de santé pour le monitor
 app.get("/health", (req, res) => {

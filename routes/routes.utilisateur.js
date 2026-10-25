@@ -51,6 +51,25 @@ routes.post("/inscription", (req, res) => {
 routes.post("/connexion", (req, res) => {
   return controllerUtilisateur.connexion(req, res);
 });
+
+/**
+ * @typedef {object} refreshInfos
+ * @property {string} refresh_token.required - Jeton de rafraîchissement reçu à la connexion
+ */
+/**
+ * POST /api/utilisateur/refresh
+ * @summary Renouveler le jeton d'accès
+ * @tags Utilisateur
+ * @param {refreshInfos} request.body.required - Jeton de rafraîchissement
+ * @return {object} 200 - Nouveaux jetons (jwt_tokens, refresh_token, expires_in)
+ * @return {object} 400 - Jeton manquant
+ * @return {object} 401 - Jeton invalide ou expiré
+ * @return {object} 503 - Renouvellement momentanément indisponible
+ */
+routes.post("/refresh", (req, res) => {
+  return controllerUtilisateur.refresh(req, res);
+});
+
 /**
  * @typedef {object} InfoSession -Profil de l'utilisateur
  * @property {string} nomUtilisateur -Nom de l'utilisateur

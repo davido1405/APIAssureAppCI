@@ -154,8 +154,13 @@ class utilisateur {
         type_utilisateur,
         numeroUtilisateur,
       );
+      const refresh_token = jwt.generateurRefreshToken(
+        code_utilisateur,
+        type_utilisateur,
+        numeroUtilisateur,
+      );
 
-      if (jwt_tokens) {
+      if (jwt_tokens && refresh_token) {
         logger.debug("JWT généré avec succes!");
       } else {
         logger.debug("Erreur génération du JWT");
@@ -179,6 +184,8 @@ class utilisateur {
           adresse_utilisateur: adresseUtilisateur,
           ville_utilisateur: ville_utilisateur,
           jwt_tokens: jwt_tokens,
+          refresh_token: refresh_token,
+          expires_in: jwt.DUREE_ACCESS_SECONDES,
         },
       };
     } catch (error) {
@@ -282,8 +289,13 @@ class utilisateur {
         utilisateur.type_utilisateur,
         utilisateur.numeros_utilisateur,
       );
+      const refresh_token = jwt.generateurRefreshToken(
+        utilisateur.code_utilisateur,
+        utilisateur.type_utilisateur,
+        utilisateur.numeros_utilisateur,
+      );
 
-      if (jwt_tokens) {
+      if (jwt_tokens && refresh_token) {
         logger.info(
           `JWT généré avec succes pour utilisateur: ${numeroUtilisateur}`,
         );
@@ -313,6 +325,8 @@ class utilisateur {
           adresse_utilisateur: utilisateur.adresse_fournit,
           ville_utilisateur: utilisateur.ville_utilisateur,
           jwt_tokens: jwt_tokens,
+          refresh_token: refresh_token,
+          expires_in: jwt.DUREE_ACCESS_SECONDES,
         },
       };
     } catch (error) {
@@ -365,6 +379,11 @@ class utilisateur {
         utilisateur.libelle_type_utilisateur,
         utilisateur.numeros_utilisateur,
       );
+      const refresh_token = jwt.generateurRefreshToken(
+        utilisateur.code_utilisateur,
+        utilisateur.libelle_type_utilisateur,
+        utilisateur.numeros_utilisateur,
+      );
 
       return {
         success: true,
@@ -379,6 +398,8 @@ class utilisateur {
           adresse_utilisateur: utilisateur.adresse_fournit,
           ville_utilisateur: utilisateur.ville_utilisateur,
           jwt_tokens: jwt_tokens,
+          refresh_token: refresh_token,
+          expires_in: jwt.DUREE_ACCESS_SECONDES,
         },
       };
     } catch (error) {
@@ -387,6 +408,100 @@ class utilisateur {
       );
       connexion.release();
       console.log(error);
+    } finally {
+      connexion.release();
+    }
+  }
+
+  /**
+   * Renouvelle la session à partir d'un jeton de rafraîchissement.
+   *
+   * Le jeton est vérifié (signature, expiration, claim `type: "refresh"`),
+   * puis l'utilisateur est recherché en base pour s'assurer que le compte
+   * existe toujours. Aucun nouveau jeton n'est émis pour un compte supprimé.
+   *
+   * Un nouveau jeton de rafraîchissement est émis à chaque appel : la fenêtre
+   * de 30 jours glisse tant que le client reste actif.
+   *
+   * @param {string} refreshToken jeton de rafraîchissement fourni par le client
+   */
+  static async rafraichirSession(refreshToken) {
+    if (!refreshToken) {
+      return {
+        success: false,
+        http_status: 400,
+        message: "Jeton de rafraîchissement requis",
+      };
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verificateurRefreshToken(refreshToken);
+    } catch (error) {
+      logger.info(`Renouvellement refusé : ${error.message}`);
+      return {
+        success: false,
+        http_status: 401,
+        message: "Session expirée. Veuillez vous reconnecter.",
+      };
+    }
+
+    const connexion = await dataBase.getConnection();
+    try {
+      const [rows] = await connexion.query(
+        "SELECT code_utilisateur FROM utilisateurs WHERE code_utilisateur = ?",
+        [decoded.code_utilisateur],
+      );
+
+      if (!rows.length) {
+        logger.info(
+          `Renouvellement refusé : utilisateur inconnu ${decoded.code_utilisateur}`,
+        );
+        return {
+          success: false,
+          http_status: 401,
+          message: "Session expirée. Veuillez vous reconnecter.",
+        };
+      }
+
+      // Les claims d'identité sont repris du refresh token : le nouveau jeton
+      // d'accès est donc strictement équivalent à celui délivré à la connexion.
+      const jwt_tokens = jwt.generateurJWT(
+        decoded.code_utilisateur,
+        decoded.type_utilisateur,
+        decoded.mobile,
+      );
+      const nouveauRefreshToken = jwt.generateurRefreshToken(
+        decoded.code_utilisateur,
+        decoded.type_utilisateur,
+        decoded.mobile,
+      );
+
+      logger.info(
+        `Session renouvelée => utilisateur: ${decoded.code_utilisateur}`,
+      );
+
+      return {
+        success: true,
+        message: "Session renouvelée avec succès !",
+        data: {
+          code_utilisateur: decoded.code_utilisateur,
+          type_utilisateur: decoded.type_utilisateur,
+          numeros_utilisateur: decoded.mobile,
+          jwt_tokens: jwt_tokens,
+          refresh_token: nouveauRefreshToken,
+          expires_in: jwt.DUREE_ACCESS_SECONDES,
+        },
+      };
+    } catch (error) {
+      logger.error(
+        `Echec du renouvellement de session => utilisateur: ${decoded.code_utilisateur} erreur: ${error.message}`,
+      );
+      return {
+        success: false,
+        http_status: 503,
+        message: "Renouvellement impossible pour le moment. Veuillez réessayer.",
+      };
     } finally {
       connexion.release();
     }
