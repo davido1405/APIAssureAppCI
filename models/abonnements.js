@@ -3,6 +3,26 @@ const dataBase = require("../config/db_config");
 const logger = require("../logger");
 
 class AbonnementModel {
+  /**
+   * Résout un code pharmacie à partir d'un code pharmacie (PHARM…) ou, pour
+   * compatibilité avec les anciens clients, d'un code utilisateur (GERANT…).
+   * Retourne null si aucun des deux ne correspond.
+   */
+  static async resoudreCodePharmacie(connexion, code) {
+    if (!code) return null;
+    const [directe] = await connexion.query(
+      "SELECT code_pharmacie FROM pharmacie WHERE code_pharmacie = ? LIMIT 1",
+      [code],
+    );
+    if (directe[0]?.code_pharmacie) return directe[0].code_pharmacie;
+
+    const [viaGerant] = await connexion.query(
+      "SELECT code_pharmacie FROM utilisateur_gerant WHERE code_utilisateur = ?",
+      [code],
+    );
+    return viaGerant[0]?.code_pharmacie || null;
+  }
+
   // ===== RÉCUPÉRER LES FORFAITS DISPONIBLES =====
   static async recupererForfaits() {
     const connexion = await dataBase.getConnection();
@@ -58,28 +78,26 @@ class AbonnementModel {
     const connexion = await dataBase.getConnection();
 
     try {
-      logger.debug(`Vérification si code_utilisateur fournit`);
+      logger.debug(`Vérification si code_pharmacie fournit`);
       if (!code_pharmacie) {
         logger.debug(
-          `Tentative de récupération de l'abonnement actif sans le code_utilisateur`,
+          `Tentative de récupération de l'abonnement actif sans le code_pharmacie`,
         );
-        connexion.release();
         return {
           success: false,
           message:
-            "Tentative de récupération de l'abonnement actif sans le code_utilisateur",
+            "Tentative de récupération de l'abonnement actif sans le code_pharmacie",
         };
       }
       logger.debug(
-        `Vérification de l'existance de la pharmacie... => utilisateur: ${code_pharmacie}`,
+        `Vérification de l'existance de la pharmacie... => code reçu: ${code_pharmacie}`,
       );
-      const [utilisateur_gerant] = await connexion.query(
-        "SELECT code_pharmacie FROM utilisateur_gerant WHERE code_utilisateur=?",
-        [code_pharmacie],
+      const codePharma = await AbonnementModel.resoudreCodePharmacie(
+        connexion,
+        code_pharmacie,
       );
 
-      if (!utilisateur_gerant[0].code_pharmacie) {
-        //Je me suis trompé donc j'ai préféré laisser le nom de la variable tel quel(sinon c'est code_utilisateur qu'on récupère)
+      if (!codePharma) {
         logger.debug(
           `Aucune pharmacie trouvé pour utilisateur: ${code_pharmacie}`,
         );
@@ -89,7 +107,7 @@ class AbonnementModel {
         };
       }
       logger.debug(
-        `Exécution de la requette(récupération du forfait actif)... => pharmacie: ${utilisateur_gerant[0].code_pharmacie}`,
+        `Exécution de la requette(récupération du forfait actif)... => pharmacie: ${codePharma}`,
       );
       const [rows] = await connexion.query(
         `
@@ -113,7 +131,7 @@ class AbonnementModel {
         ORDER BY a.date_fin DESC
         LIMIT 1
       `,
-        [utilisateur_gerant[0].code_pharmacie],
+        [codePharma],
       );
 
       if (rows.length === 0) {
@@ -139,17 +157,17 @@ class AbonnementModel {
       logger.error(
         `Erreur lors de la récupération du forfait de la pharmacie. erreur: ${error.message}`,
       );
-      connexion.release();
+      return { success: false, message: "Erreur serveur" };
     } finally {
       connexion.release();
     }
   }
 
   // ===== VÉRIFIER SI UNE FONCTIONNALITÉ EST DISPONIBLE =====
-  static async verifierAccesFonctionnalite(code_gerant, code_fonctionnalite) {
+  static async verifierAccesFonctionnalite(code_pharmacie, code_fonctionnalite) {
     const connexion = await dataBase.getConnection();
-    if (!(code_gerant && code_fonctionnalite)) {
-      logger.debug(`Code gérant ou code_fonctionnalité manquant`);
+    if (!(code_pharmacie && code_fonctionnalite)) {
+      logger.debug(`Code pharmacie ou code_fonctionnalité manquant`);
       return {
         success: false,
         message: "Veuillez remplir tous les champs",
@@ -158,18 +176,17 @@ class AbonnementModel {
 
     logger.debug(`Vérification de l'accès à une fonctionnalité...`);
     try {
-      logger.debug(
-        `Récupération du code de la pharmacie en fonction du code gérant`,
-      );
-      //Récupérer le code de la pharmacie en fonction du code du gérant
-      const [pharmacie] = await connexion.query(
-        "SELECT code_pharmacie FROM utilisateur_gerant WHERE code_utilisateur=?",
-        [code_gerant],
+      /* Le code reçu est en principe un code pharmacie (PHARM…). On accepte
+         aussi un code utilisateur (GERANT…) pour ne pas casser les anciens
+         clients : la pharmacie est alors résolue via utilisateur_gerant. */
+      const codePharma = await AbonnementModel.resoudreCodePharmacie(
+        connexion,
+        code_pharmacie,
       );
 
-      if (!pharmacie[0]) {
+      if (!codePharma) {
         logger.debug(
-          `Aucune pharmacie trouvé pour cet utilisateur ${code_gerant}`,
+          `Aucune pharmacie trouvé pour cet utilisateur ${code_pharmacie}`,
         );
         return {
           success: false,
@@ -187,7 +204,7 @@ class AbonnementModel {
         ORDER BY a.date_fin DESC
         LIMIT 1
       `,
-        [pharmacie[0].code_pharmacie],
+        [codePharma],
       );
 
       let id_forfait;
@@ -211,7 +228,7 @@ class AbonnementModel {
       }
 
       logger.debug(
-        `Vérification de l'accès à  la fonctionnalité... => pharmacie: ${pharmacie[0].code_pharmacie} fonctionnalité: ${code_fonctionnalite}`,
+        `Vérification de l'accès à  la fonctionnalité... => pharmacie: ${codePharma} fonctionnalité: ${code_fonctionnalite}`,
       );
       const [fonctionnalite] = await connexion.query(
         `
@@ -228,7 +245,7 @@ class AbonnementModel {
 
       if (fonctionnalite.length === 0) {
         logger.debug(
-          `Fonctionnalité: ${fonctionnalite[0].nom_fonctionnalite} non incluse dans le forfait`,
+          `Fonctionnalité: ${code_fonctionnalite} non incluse dans le forfait`,
         );
         return {
           acces: false,
@@ -241,13 +258,13 @@ class AbonnementModel {
       // Si pas de limite, accès illimité
       if (limite === null) {
         logger.debug(
-          `Aucune limite d'utilisation => pharmacie: ${pharmacie[0].nom_pharmacie} fonctionnalite: ${fonctionnalite[0].nom_fonctionnalite}`,
+          `Aucune limite d'utilisation => pharmacie: ${codePharma} fonctionnalite: ${fonctionnalite[0].nom_fonctionnalite}`,
         );
         return { acces: true, limite: null, utilise: 0 };
       }
 
       logger.debug(
-        `Vérification limite d'utilisation... => pharmacie: ${pharmacie[0].nom_pharmacie} fonctionnalite: ${fonctionnalite[0].nom_fonctionnalite}`,
+        `Vérification limite d'utilisation... => pharmacie: ${codePharma} fonctionnalite: ${fonctionnalite[0].nom_fonctionnalite}`,
       );
       // Vérifier l'utilisation du mois en cours
       const [utilisation] = await connexion.query(
@@ -260,14 +277,14 @@ class AbonnementModel {
           AND MONTH(uf.date_utilisation) = MONTH(NOW())
           AND YEAR(uf.date_utilisation) = YEAR(NOW())
       `,
-        [pharmacie[0].code_pharmacie, code_fonctionnalite],
+        [codePharma, code_fonctionnalite],
       );
 
       const nb_utilisations = utilisation[0].nb_utilisations;
 
       if (nb_utilisations >= limite) {
         logger.debug(
-          `Dépassement des limites d'utilisation => pharmacie:${pharmacie[0].nom_pharmacie} nombre_utilisation: ${nb_utilisations} limite: ${limite} fonctionnalité: ${fonctionnalite[0].nom_fonctionnalite}`,
+          `Dépassement des limites d'utilisation => pharmacie:${codePharma} nombre_utilisation: ${nb_utilisations} limite: ${limite} fonctionnalité: ${fonctionnalite[0].nom_fonctionnalite}`,
         );
         return {
           acces: false,
@@ -278,7 +295,7 @@ class AbonnementModel {
       }
 
       logger.debug(
-        `Accès autorisé à la fonctionnalité => pharmacie: ${pharmacie[0].nom_pharmacie} fonctionnalité: ${fonctionnalite[0].nom_fonctionnalite} restant: ${limite - nb_utilisations}`,
+        `Accès autorisé à la fonctionnalité => pharmacie: ${codePharma} fonctionnalité: ${fonctionnalite[0].nom_fonctionnalite} restant: ${limite - nb_utilisations}`,
       );
       return {
         acces: true,
@@ -290,7 +307,6 @@ class AbonnementModel {
       logger.error(
         `Erreur lors de la vérification de l'accès à la fonctionnalité: ${code_fonctionnalite} erreur: ${error.message}`,
       );
-      connexion.release();
       return {
         acces: false,
       };
