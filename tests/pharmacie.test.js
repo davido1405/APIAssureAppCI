@@ -97,11 +97,43 @@ describe("Pharmacie controller", () => {
     expect(res.status).toBe(400);
   });
 
-  it("ajouterPharmacie: sans photo -> 400", async () => {
+  it("ajouterPharmacie: sans photo -> 201 (photo facultative)", async () => {
+    ModelPharmacie.ajouterPharmacie.mockResolvedValue({ success: true, message: "ok" });
     const res = await request(app)
       .post("/api/pharmacie/ajouterPharmacie")
       .field(validBody);
+    expect(res.status).toBe(201);
+    expect(ModelPharmacie.ajouterPharmacie).toHaveBeenCalledWith(
+      "GER001", "Pharmacie Test", null, "01020304",
+      "08:00-18:00", "08:00-13:00", "Fermé", 5.3, -4, "Abidjan", "Rue 12",
+      "test@test.ci", ["NSIA"],
+    );
+  });
+
+  it("ajouterPharmacie: sans email ni coordonnées GPS -> 201", async () => {
+    ModelPharmacie.ajouterPharmacie.mockResolvedValue({ success: true, message: "ok" });
+    const body = { ...validBody };
+    delete body.email_pharmacie;
+    delete body.latitudePharmacie;
+    delete body.longitudePharmacie;
+    const res = await request(app)
+      .post("/api/pharmacie/ajouterPharmacie")
+      .field(body);
+    expect(res.status).toBe(201);
+    expect(ModelPharmacie.ajouterPharmacie).toHaveBeenCalledWith(
+      "GER001", "Pharmacie Test", null, "01020304",
+      "08:00-18:00", "08:00-13:00", "Fermé", 0, 0, "Abidjan", "Rue 12",
+      null, ["NSIA"],
+    );
+  });
+
+  it("ajouterPharmacie: email facultatif mais validé s'il est fourni -> 400", async () => {
+    const body = { ...validBody, email_pharmacie: "pas-un-email" };
+    const res = await request(app)
+      .post("/api/pharmacie/ajouterPharmacie")
+      .field(body);
     expect(res.status).toBe(400);
+    expect(ModelPharmacie.ajouterPharmacie).not.toHaveBeenCalled();
   });
 
   it("ajouterPharmacie: coordonnées invalides -> 400", async () => {

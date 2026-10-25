@@ -100,38 +100,65 @@ class controllerPharmacie {
         `Ajout d'une nouvelle pharmacie... => pharmacie: ${nom_pharmacie} date: ${new Date().toISOString()} origine: ${req.hostname}`,
       );
 
-      // ✅ Validation AVANT upload
-      if (
-        !code_gerant ||
-        !nom_pharmacie ||
-        !numero_pharmacie ||
-        !email_pharmacie ||
-        !ville_pharmacie ||
-        !adresse_fournit ||
-        !horaires_en_semaine ||
-        !horaires_samedi ||
-        !horaires_dimanche
-      ) {
+      // ✅ Validation AVANT upload.
+      //    Seuls l'identité du gérant et la localisation de base sont exigés :
+      //    la photo, l'email et les coordonnées GPS restent facultatifs pour
+      //    permettre une inscription en plusieurs étapes (profil gérant d'abord,
+      //    pharmacie complétée plus tard depuis le tableau de bord).
+      const champsManquants = [];
+      if (!code_gerant) champsManquants.push("code_gerant");
+      if (!nom_pharmacie) champsManquants.push("nom_pharmacie");
+      if (!numero_pharmacie) champsManquants.push("numero_pharmacie");
+      if (!ville_pharmacie) champsManquants.push("ville_pharmacie");
+      if (!adresse_fournit) champsManquants.push("adresse_fournit");
+
+      if (champsManquants.length > 0) {
         logger.info(
-          `Tentative d'ajout d'une pharmacie avec des informations manquante => Origine: ${req.hostname}`,
+          `Tentative d'ajout d'une pharmacie avec des informations manquante => champs: ${champsManquants.join(",")} origine: ${req.hostname}`,
         );
         return res.status(400).json({
           success: false,
           message: "Tous les champs requis doivent être remplis",
+          failed_fields: champsManquants,
         });
       }
 
-      // ✅ Parser les assurances
+      // ✅ Email facultatif, mais validé s'il est fourni
+      const emailNormalise = String(email_pharmacie || "").trim();
+      if (emailNormalise) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(emailNormalise)) {
+          return res.status(400).json({
+            success: false,
+            message: "Format d'email invalide",
+          });
+        }
+      }
+
+      // ✅ Parser les assurances (facultatif : tableau vide par défaut)
       let assurances = [];
-      try {
-        assurances = JSON.parse(liste_assurance_accepte);
-        console.log("✅ Assurances parsées:", assurances);
-      } catch (e) {
-        console.error("❌ Erreur parsing assurances:", e);
-        return res.status(400).json({
-          success: false,
-          message: "Format des assurances invalide",
-        });
+      if (
+        liste_assurance_accepte !== undefined &&
+        liste_assurance_accepte !== null &&
+        String(liste_assurance_accepte).trim() !== ""
+      ) {
+        try {
+          assurances = JSON.parse(liste_assurance_accepte);
+          console.log("✅ Assurances parsées:", assurances);
+        } catch (e) {
+          console.error("❌ Erreur parsing assurances:", e);
+          return res.status(400).json({
+            success: false,
+            message: "Format des assurances invalide",
+          });
+        }
+
+        if (!Array.isArray(assurances)) {
+          return res.status(400).json({
+            success: false,
+            message: "Format des assurances invalide",
+          });
+        }
       }
 
       // ✅ Upload vers Cloudinary
@@ -172,20 +199,23 @@ class controllerPharmacie {
         console.log("⚠️ Aucune photo fournie ou buffer manquant");
       }
 
-      // ✅ Vérifier que la photo est présente
-      if (!photo_pharmacie) {
-        logger.info(
-          `Tentative d'enregistrement d'une nouvelle pharmacie sans photo => pharmacie: ${nom_pharmacie} origine:${req.hostname}`,
-        );
-        return res.status(400).json({
-          success: false,
-          message: "La photo de la pharmacie est requise",
-        });
-      }
+      // ✅ Parser les coordonnées GPS (facultatives : 0 par défaut, 0 reste une
+      //    valeur valide). Un gérant peut donc créer sa pharmacie sans GPS.
+      const latitudeBrute =
+        latitudePharmacie === undefined ||
+        latitudePharmacie === null ||
+        String(latitudePharmacie).trim() === ""
+          ? 0
+          : latitudePharmacie;
+      const longitudeBrute =
+        longitudePharmacie === undefined ||
+        longitudePharmacie === null ||
+        String(longitudePharmacie).trim() === ""
+          ? 0
+          : longitudePharmacie;
 
-      // ✅ Parser les coordonnées GPS (accepter 0 comme valeur valide)
-      const latitude = parseFloat(latitudePharmacie);
-      const longitude = parseFloat(longitudePharmacie);
+      const latitude = parseFloat(latitudeBrute);
+      const longitude = parseFloat(longitudeBrute);
 
       // Vérifier que le parsing a fonctionné
       if (isNaN(latitude) || isNaN(longitude)) {
@@ -194,6 +224,11 @@ class controllerPharmacie {
           message: "Coordonnées GPS invalides",
         });
       }
+
+      // ✅ Horaires : « Fermée » par défaut si non renseignés
+      const horaireSemaine = horaires_en_semaine || "Fermée";
+      const horaireSamedi = horaires_samedi || "Fermée";
+      const horaireDimanche = horaires_dimanche || "Fermée";
 
       console.log("=== COORDONNÉES ===");
       console.log("Latitude:", latitude);
@@ -211,14 +246,14 @@ class controllerPharmacie {
         nom_pharmacie,
         photo_pharmacie,
         numero_pharmacie,
-        horaires_en_semaine,
-        horaires_samedi,
-        horaires_dimanche,
+        horaireSemaine,
+        horaireSamedi,
+        horaireDimanche,
         latitude, // ✅ Nombre (peut être 0)
         longitude, // ✅ Nombre (peut être 0)
         ville_pharmacie,
         adresse_fournit,
-        email_pharmacie,
+        emailNormalise || null,
         assurances,
       );
 

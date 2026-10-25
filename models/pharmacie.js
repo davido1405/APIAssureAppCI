@@ -444,12 +444,13 @@ GROUP BY
     console.log("email_pharmacie:", email_pharmacie);
     console.log("liste_assurance_accepte:", liste_assurance_accepte);
 
-    // ✅ Validation corrigée (accepte 0 pour latitude/longitude)
+    // ✅ Validation : la photo et l'email sont facultatifs (inscription en
+    //    plusieurs étapes). Seuls les champs indispensables à l'identification
+    //    et à la localisation de la pharmacie sont exigés.
     if (
       !(
         code_gerant &&
         nom_pharmacie &&
-        photo_pharmacie &&
         numero_pharmacie &&
         horaires_en_semaine &&
         horaires_samedi &&
@@ -457,7 +458,6 @@ GROUP BY
         latitude !== undefined && // ✅ Accepte 0
         longitude !== undefined && // ✅ Accepte 0
         ville_pharmacie &&
-        email_pharmacie &&
         adresse_fournit &&
         Array.isArray(liste_assurance_accepte)
       )
@@ -468,7 +468,6 @@ GROUP BY
       const checks = {
         code_gerant: !!code_gerant,
         nom_pharmacie: !!nom_pharmacie,
-        photo_pharmacie: !!photo_pharmacie,
         numero_pharmacie: !!numero_pharmacie,
         horaires_en_semaine: horaires_en_semaine,
         horaires_samedi: horaires_samedi,
@@ -476,7 +475,6 @@ GROUP BY
         latitude: latitude !== undefined,
         longitude: longitude !== undefined,
         ville_pharmacie: !!ville_pharmacie,
-        email_pharmacie: !!email_pharmacie,
         adresse_fournit: !!adresse_fournit,
         liste_assurance_accepte: Array.isArray(liste_assurance_accepte),
       };
@@ -498,15 +496,17 @@ GROUP BY
 
     console.log("✅ VALIDATION RÉUSSIE");
 
-    // ✅ Validation email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email_pharmacie)) {
-      connexion.release();
-      logger.debug(`Format d'email fournit incorrecte`);
-      return {
-        success: false,
-        message: "Format d'email invalide",
-      };
+    // ✅ Validation email (uniquement s'il est fourni)
+    if (email_pharmacie) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email_pharmacie)) {
+        connexion.release();
+        logger.debug(`Format d'email fournit incorrecte`);
+        return {
+          success: false,
+          message: "Format d'email invalide",
+        };
+      }
     }
 
     // ✅ Validation coordonnées GPS
@@ -612,15 +612,15 @@ GROUP BY
         [
           code_pharma,
           nom_pharmacie,
-          photo_pharmacie,
+          photo_pharmacie || null,
           numero_pharmacie,
           1,
-          email_pharmacie,
+          email_pharmacie || null,
         ],
       );
 
       if (newPharma.insertId == null) {
-        throw new Exception("Erreur lors de l'enregistrement de la pharmacie");
+        throw new Error("Erreur lors de l'enregistrement de la pharmacie");
       }
       logger.debug(`Pharmacie enregistrée`);
 

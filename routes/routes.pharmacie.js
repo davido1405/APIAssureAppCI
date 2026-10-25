@@ -63,19 +63,19 @@ routes.post(
 //Enregistrer une pharmacie
 /**
  * @typedef {object} infosAjouterPharmacie -Informations nécéssaire à ajouter une pharmacie
- * @property {string} code_pharmacie.required - Code de la pharmacie à modifier (obligatoire) - multipart/form-data
+ * @property {string} code_gerant.required - Code du gérant qui crée la pharmacie - application/x-www-form-urlencoded
  * @property {string} nom_pharmacie.required - Nom de la pharmacie à enregistrer - application/x-www-form-urlencoded
  * @property {string} numero_pharmacie.required - Numéros de la pharmacie à enregistrer - application/x-www-form-urlencoded
- * @property {string} horaires_en_semaine.required - Les horaires d'ouverture de la pharmacie en semaine - application/x-www-form-urlencoded
- * @property {string} horaires_samedi.required - Les horaires d'ouverture de la pharmacie le samedi - application/x-www-form-urlencoded
- * @property {string} horaires_dimanche.required - Les horaires d'ouverture de la pharmacie le dimanche - application/x-www-form-urlencoded
- * @property {string} email_pharmacie.required - Email de la pharmacie à enregistrer - application/x-www-form-urlencoded
- * @property {number} latitudePharmacie.required - Latitude de la position de la pharmacie - application/x-www-form-urlencoded
- * @property {number} longitudePharmacie.required - Longitude de la position de la pharmacie - application/x-www-form-urlencoded
+ * @property {string} horaires_en_semaine - Les horaires d'ouverture de la pharmacie en semaine (défaut « Fermée ») - application/x-www-form-urlencoded
+ * @property {string} horaires_samedi - Les horaires d'ouverture de la pharmacie le samedi (défaut « Fermée ») - application/x-www-form-urlencoded
+ * @property {string} horaires_dimanche - Les horaires d'ouverture de la pharmacie le dimanche (défaut « Fermée ») - application/x-www-form-urlencoded
+ * @property {string} email_pharmacie - Email de la pharmacie à enregistrer (facultatif) - application/x-www-form-urlencoded
+ * @property {number} latitudePharmacie - Latitude de la position de la pharmacie (facultatif, 0 par défaut) - application/x-www-form-urlencoded
+ * @property {number} longitudePharmacie - Longitude de la position de la pharmacie (facultatif, 0 par défaut) - application/x-www-form-urlencoded
  * @property {string} ville_pharmacie.required - La ville où la pharmacie exerce - application/x-www-form-urlencoded
  * @property {string} adresse_fournit.required - Adresse fournie par la pharmacie - application/x-www-form-urlencoded
- * @property {string} liste_assurance_accepte.required - Liste des assurances acceptées (JSON array) - application/x-www-form-urlencoded - eg: ["NSIA", "AXA"]
- * @property {string} photo.required - Photo de la pharmacie (fichier image) - multipart/form-data - format: binary
+ * @property {string} liste_assurance_accepte - Liste des assurances acceptées (JSON array, facultatif) - application/x-www-form-urlencoded - eg: ["NSIA", "AXA"]
+ * @property {string} photo - Photo de la pharmacie (fichier image, facultatif) - multipart/form-data - format: binary
  */
 /**
  * POST /api/pharmacie/ajouterPharmacie
